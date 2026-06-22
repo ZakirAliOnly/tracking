@@ -1,0 +1,879 @@
+
+> tracking@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.100.218:3000
+- Environments: .env.local, .env
+✓ Ready in 651ms
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\hairb\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\hairb\Desktop\tracking\package-lock.json
+
+
+ GET /dashboard 200 in 840ms (next.js: 245ms, proxy.ts: 251ms, application-code: 345ms)
+ GET / 307 in 123ms (next.js: 40ms, application-code: 83ms)
+ GET /login 200 in 100ms (next.js: 33ms, application-code: 67ms)
+✓ Compiled in 867ms
+ GET /dashboard 200 in 459ms (next.js: 216ms, proxy.ts: 117ms, application-code: 126ms)
+ GET /dashboard 200 in 92ms (next.js: 9ms, proxy.ts: 19ms, application-code: 64ms)
+ GET /dashboard 200 in 90ms (next.js: 8ms, proxy.ts: 19ms, application-code: 64ms)
+ GET /dashboard 200 in 71ms (next.js: 9ms, proxy.ts: 17ms, application-code: 44ms)
+✓ Compiled in 81ms
+ GET /dashboard 200 in 324ms (next.js: 142ms, proxy.ts: 72ms, application-code: 110ms)
+ GET /dashboard 200 in 85ms (next.js: 8ms, proxy.ts: 17ms, application-code: 60ms)
+ GET /dashboard 200 in 93ms (next.js: 8ms, proxy.ts: 24ms, application-code: 61ms)
+ GET /dashboard 200 in 86ms (next.js: 8ms, proxy.ts: 17ms, application-code: 61ms)
+✓ Compiled in 387ms
+ GET /dashboard 200 in 337ms (next.js: 159ms, proxy.ts: 99ms, application-code: 79ms)
+ GET /dashboard 200 in 101ms (next.js: 8ms, proxy.ts: 18ms, application-code: 75ms)
+ GET /dashboard 200 in 79ms (next.js: 8ms, proxy.ts: 17ms, application-code: 53ms)
+ GET /dashboard 200 in 118ms (next.js: 16ms, proxy.ts: 17ms, application-code: 86ms)
+ GET /dashboard 200 in 106ms (next.js: 8ms, proxy.ts: 29ms, application-code: 69ms)
+ GET /dashboard 200 in 83ms (next.js: 9ms, proxy.ts: 19ms, application-code: 55ms)
+ GET /dashboard 200 in 88ms (next.js: 8ms, proxy.ts: 17ms, application-code: 63ms)
+ GET /dashboard 200 in 81ms (next.js: 9ms, proxy.ts: 18ms, application-code: 53ms)
+ GET /dashboard 200 in 639ms (next.js: 151ms, proxy.ts: 258ms, application-code: 230ms)
+ GET /dashboard 200 in 264ms (next.js: 113ms, proxy.ts: 80ms, application-code: 71ms)
+ GET /dashboard 200 in 87ms (next.js: 7ms, proxy.ts: 15ms, application-code: 65ms)
+ GET /dashboard 200 in 96ms (next.js: 8ms, proxy.ts: 16ms, application-code: 71ms)
+ GET /dashboard 200 in 105ms (next.js: 12ms, proxy.ts: 19ms, application-code: 75ms)
+ GET /dashboard 200 in 95ms (next.js: 9ms, proxy.ts: 15ms, application-code: 72ms)
+ GET /dashboard 200 in 101ms (next.js: 8ms, proxy.ts: 16ms, application-code: 77ms)
+ GET /dashboard 200 in 98ms (next.js: 9ms, proxy.ts: 20ms, application-code: 68ms)
+ GET /dashboard 200 in 107ms (next.js: 9ms, proxy.ts: 17ms, application-code: 81ms)
+ GET /dashboard 200 in 86ms (next.js: 8ms, proxy.ts: 15ms, application-code: 64ms)
+ GET /dashboard 200 in 88ms (next.js: 9ms, proxy.ts: 17ms, application-code: 62ms)
+ GET /dashboard 200 in 88ms (next.js: 7ms, proxy.ts: 15ms, application-code: 66ms)
+ GET /dashboard 200 in 101ms (next.js: 9ms, proxy.ts: 18ms, application-code: 73ms)
+ GET /dashboard 200 in 93ms (next.js: 8ms, proxy.ts: 17ms, application-code: 67ms)
+ GET /dashboard 200 in 78ms (next.js: 8ms, proxy.ts: 17ms, application-code: 53ms)
+ GET /dashboard 200 in 73ms (next.js: 7ms, proxy.ts: 15ms, application-code: 50ms)
+ GET /dashboard 200 in 78ms (next.js: 7ms, proxy.ts: 15ms, application-code: 56ms)
+ GET /dashboard 200 in 64ms (next.js: 7ms, proxy.ts: 16ms, application-code: 42ms)
+✓ Compiled in 412ms
+✓ Compiled in 169ms
+✓ Compiled in 131ms
+ GET /dashboard 200 in 426ms (next.js: 175ms, proxy.ts: 134ms, application-code: 118ms)
+ GET /dashboard 200 in 90ms (next.js: 16ms, proxy.ts: 16ms, application-code: 58ms)
+ GET /dashboard 200 in 89ms (next.js: 8ms, proxy.ts: 15ms, application-code: 66ms)
+ GET /dashboard 200 in 94ms (next.js: 8ms, proxy.ts: 16ms, application-code: 70ms)
+ GET /dashboard 200 in 90ms (next.js: 8ms, proxy.ts: 18ms, application-code: 63ms)
+ GET /dashboard 200 in 98ms (next.js: 8ms, proxy.ts: 16ms, application-code: 73ms)
+ GET /dashboard 200 in 137ms (next.js: 9ms, proxy.ts: 22ms, application-code: 106ms)
+ GET /dashboard 200 in 97ms (next.js: 9ms, proxy.ts: 18ms, application-code: 70ms)
+ GET /dashboard 200 in 80ms (next.js: 8ms, proxy.ts: 17ms, application-code: 55ms)
+ GET /dashboard 200 in 94ms (next.js: 8ms, proxy.ts: 15ms, application-code: 70ms)
+ GET /dashboard 200 in 83ms (next.js: 8ms, proxy.ts: 15ms, application-code: 59ms)
+ GET /dashboard 200 in 86ms (next.js: 9ms, proxy.ts: 16ms, application-code: 61ms)
+ GET /dashboard 200 in 82ms (next.js: 8ms, proxy.ts: 15ms, application-code: 59ms)
+ GET /dashboard 200 in 63ms (next.js: 7ms, proxy.ts: 14ms, application-code: 42ms)
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /customers 200 in 8.3s (next.js: 2.4s, proxy.ts: 12ms, application-code: 5.9s)
+ POST /customers 200 in 487ms (next.js: 13ms, proxy.ts: 22ms, application-code: 452ms)
+  └─ ƒ saveCustomer(null, {}) in 142ms actions/customers.ts
+✓ Compiled in 60ms
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (3) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+ GET /customers 200 in 737ms (next.js: 187ms, proxy.ts: 94ms, application-code: 457ms)
+ GET /customers 200 in 375ms (next.js: 30ms, proxy.ts: 43ms, application-code: 302ms)
+✓ Compiled in 176ms
+⨯ ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-client] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+
+./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-ssr] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+ GET /customers 500 in 3.0s (next.js: 2.6s, proxy.ts: 110ms, application-code: 264ms)
+⨯ ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-client] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+
+./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-ssr] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+ GET /customers 500 in 51ms (next.js: 18ms, proxy.ts: 15ms, application-code: 18ms)
+⨯ ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-client] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+
+./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-ssr] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+ GET /customers 500 in 59ms (next.js: 23ms, proxy.ts: 16ms, application-code: 19ms)
+⨯ ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-client] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+
+./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  [90m3 |[0m [36mimport[0m { useActionState, useEffect, useRef, useState } [36mfrom[0m [32m"react"[0m;
+  [90m4 |[0m [36mimport[0m { [33mX[0m } [36mfrom[0m [32m"lucide-react"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { saveCustomer, [36mtype[0m [33mSaveCustomerState[0m } [36mfrom[0m [32m"@/actions/customers"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mProps[0m = {
+  [90m8 |[0m   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-ssr] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+ GET /customers 500 in 44ms (next.js: 16ms, proxy.ts: 14ms, application-code: 14ms)
+[browser] Uncaught Error: ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1
+Export saveCustomer doesn't exist in target module
+  3 | import { useActionState, useEffect, useRef, useState } from "react";
+  4 | import { X } from "lucide-react";
+> 5 | import { saveCustomer, type SaveCustomerState } from "@/actions/customers";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 |
+  7 | type Props = {
+  8 |   open: boolean;
+
+The export saveCustomer was not found in module [project]/Desktop/tracking/actions/customers.ts [app-client] (ecmascript).
+Did you mean to import upsertCustomer?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component Browser]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Client Component SSR]
+    ./Desktop/tracking/components/customers/CustomersView.tsx [Server Component]
+    ./Desktop/tracking/app/(app)/customers/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1)
+    at <unknown> (Error: (./Desktop/tracking/components/customers/AddCustomerDrawer.tsx:5:1)
+✓ Compiled in 227ms
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /customers 200 in 861ms (next.js: 179ms, proxy.ts: 30ms, application-code: 652ms)
+✓ Compiled in 203ms
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (3) from .env.local // tip: ⌘ suppress logs { quiet: true }
+ GET /customers 200 in 624ms (next.js: 142ms, proxy.ts: 76ms, application-code: 406ms)
+ GET /customers 200 in 260ms (next.js: 10ms, proxy.ts: 39ms, application-code: 211ms)
+✓ Compiled in 363ms
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (3) from .env.local // tip: ⌘ suppress logs { quiet: true }
+ GET /customers 200 in 1084ms (next.js: 189ms, proxy.ts: 84ms, application-code: 811ms)
+ GET /customers 200 in 498ms (next.js: 9ms, proxy.ts: 40ms, application-code: 448ms)
+✓ Compiled in 235ms
+✓ Compiled in 142ms
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (3) from .env.local // tip: ⌘ enable debugging { debug: true }
+ GET /customers 200 in 520ms (next.js: 17ms, proxy.ts: 77ms, application-code: 427ms)
+ GET /customers 200 in 587ms (next.js: 104ms, proxy.ts: 76ms, application-code: 407ms)
+ GET /customers 200 in 594ms (next.js: 64ms, proxy.ts: 77ms, application-code: 453ms)
+ GET /customers 200 in 591ms (next.js: 159ms, proxy.ts: 76ms, application-code: 356ms)
+ GET /customers 200 in 1936ms (next.js: 324ms, proxy.ts: 335ms, application-code: 1277ms)
+ GET /customers 200 in 937ms (next.js: 10ms, proxy.ts: 100ms, application-code: 827ms)
+ GET /customers 200 in 527ms (next.js: 19ms, proxy.ts: 112ms, application-code: 396ms)
+ GET /customers 200 in 611ms (next.js: 25ms, proxy.ts: 138ms, application-code: 448ms)
+ GET /customers 200 in 608ms (next.js: 83ms, proxy.ts: 138ms, application-code: 388ms)
+ GET /customers 200 in 609ms (next.js: 183ms, proxy.ts: 136ms, application-code: 290ms)
+ GET /customers 200 in 612ms (next.js: 134ms, proxy.ts: 136ms, application-code: 341ms)
+ GET /customers 200 in 603ms (next.js: 62ms, proxy.ts: 328ms, application-code: 214ms)
+ GET /customers 200 in 533ms (next.js: 27ms, proxy.ts: 193ms, application-code: 314ms)
+ GET /customers 200 in 450ms (next.js: 15ms, proxy.ts: 121ms, application-code: 315ms)
+ GET /customers 200 in 449ms (next.js: 74ms, proxy.ts: 120ms, application-code: 255ms)
+ GET /customers 200 in 444ms (next.js: 136ms, proxy.ts: 117ms, application-code: 190ms)
+ POST /auth/callback/credentials 404 in 371ms (next.js: 128ms, application-code: 243ms)
+○ Compiling /installations ...
+ GET /installations 200 in 3.7s (next.js: 3.3s, proxy.ts: 15ms, application-code: 426ms)
+ GET /renewals 404 in 77ms (next.js: 18ms, proxy.ts: 17ms, application-code: 42ms)
+ GET /renewals 404 in 97ms (next.js: 21ms, proxy.ts: 15ms, application-code: 61ms)
+ GET /installations 200 in 459ms (next.js: 10ms, proxy.ts: 15ms, application-code: 434ms)
+✓ Compiled in 778ms
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /installations 200 in 413ms (next.js: 11ms, proxy.ts: 117ms, application-code: 284ms)
+ GET /installations 200 in 4.6s (next.js: 580ms, proxy.ts: 3.2s, application-code: 870ms)
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+✓ Compiled in 849ms
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (3) from .env.local // tip: ⌘ enable debugging { debug: true }
+ GET /installations 200 in 2.0s (next.js: 345ms, proxy.ts: 28ms, application-code: 1657ms)
+ GET /installations 200 in 1317ms (next.js: 282ms, proxy.ts: 248ms, application-code: 788ms)
+ GET /installations 200 in 550ms (next.js: 24ms, proxy.ts: 176ms, application-code: 350ms)
+ GET /installations 200 in 545ms (next.js: 89ms, proxy.ts: 173ms, application-code: 283ms)
+✓ Compiled in 375ms
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /installations 200 in 1176ms (next.js: 369ms, proxy.ts: 242ms, application-code: 565ms)
+ GET /renewals 404 in 177ms (next.js: 63ms, proxy.ts: 22ms, application-code: 91ms)
+ GET /renewals 404 in 279ms (next.js: 18ms, proxy.ts: 27ms, application-code: 234ms)
+✓ Compiled in 213ms
+✓ Compiled in 160ms
+✓ Compiled in 550ms
+◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+◇ injected env (3) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+ GET /installations 200 in 2.1s (next.js: 530ms, proxy.ts: 319ms, application-code: 1279ms)
+ GET /installations 200 in 940ms (next.js: 27ms, proxy.ts: 68ms, application-code: 845ms)
+ GET /installations 200 in 759ms (next.js: 164ms, proxy.ts: 125ms, application-code: 471ms)
+ GET /installations 200 in 767ms (next.js: 232ms, proxy.ts: 125ms, application-code: 410ms)
+ GET /installations 200 in 868ms (next.js: 38ms, proxy.ts: 123ms, application-code: 708ms)
+ GET /installations 200 in 891ms (next.js: 98ms, proxy.ts: 124ms, application-code: 670ms)
+ GET /installations 200 in 734ms (next.js: 31ms, proxy.ts: 121ms, application-code: 581ms)
+ GET /installations 200 in 789ms (next.js: 106ms, proxy.ts: 115ms, application-code: 568ms)
+ GET /installations 200 in 778ms (next.js: 173ms, proxy.ts: 113ms, application-code: 492ms)
+ GET /installations 200 in 783ms (next.js: 197ms, proxy.ts: 178ms, application-code: 408ms)
+ GET /installations 200 in 833ms (next.js: 97ms, proxy.ts: 435ms, application-code: 302ms)
+ GET /installations 200 in 754ms (next.js: 125ms, proxy.ts: 409ms, application-code: 220ms)
+ GET /installations 200 in 699ms (next.js: 27ms, proxy.ts: 153ms, application-code: 519ms)
+ GET /installations 200 in 746ms (next.js: 97ms, proxy.ts: 144ms, application-code: 505ms)
+ GET /installations 200 in 745ms (next.js: 142ms, proxy.ts: 145ms, application-code: 458ms)
+ GET /installations 200 in 745ms (next.js: 154ms, proxy.ts: 198ms, application-code: 393ms)
+ GET /installations 200 in 719ms (next.js: 75ms, proxy.ts: 412ms, application-code: 232ms)
+ GET /installations 200 in 644ms (next.js: 106ms, proxy.ts: 367ms, application-code: 171ms)
+ GET /renewals 200 in 2.5s (next.js: 2.2s, proxy.ts: 10ms, application-code: 308ms)
+ GET /stock 404 in 62ms (next.js: 24ms, proxy.ts: 8ms, application-code: 30ms)
+ GET /stock 404 in 76ms (next.js: 7ms, proxy.ts: 7ms, application-code: 61ms)
+✓ Compiled in 65ms
+✓ Compiled in 88ms
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (3) from .env.local // tip: ⌘ enable debugging { debug: true }
+ GET /renewals 200 in 846ms (next.js: 183ms, proxy.ts: 113ms, application-code: 550ms)
+ GET /renewals 200 in 378ms (next.js: 57ms, proxy.ts: 74ms, application-code: 247ms)
+ GET /renewals 200 in 386ms (next.js: 123ms, proxy.ts: 76ms, application-code: 187ms)
+ GET /renewals 200 in 398ms (next.js: 93ms, proxy.ts: 75ms, application-code: 230ms)
+ GET /renewals 200 in 542ms (next.js: 14ms, proxy.ts: 27ms, application-code: 501ms)
+ GET /renewals 200 in 457ms (next.js: 17ms, proxy.ts: 73ms, application-code: 368ms)
+ GET /renewals 200 in 543ms (next.js: 204ms, proxy.ts: 73ms, application-code: 266ms)
+ GET /renewals 200 in 547ms (next.js: 43ms, proxy.ts: 255ms, application-code: 249ms)
+ GET /renewals 200 in 547ms (next.js: 67ms, proxy.ts: 256ms, application-code: 224ms)
+ GET /renewals 200 in 501ms (next.js: 89ms, proxy.ts: 329ms, application-code: 84ms)
+ GET /renewals 200 in 519ms (next.js: 51ms, proxy.ts: 327ms, application-code: 140ms)
+ GET /renewals 200 in 689ms (next.js: 21ms, proxy.ts: 86ms, application-code: 582ms)
+ GET /stock 200 in 1515ms (next.js: 1375ms, proxy.ts: 7ms, application-code: 133ms)
+✓ Compiled in 65ms
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ⌘ suppress logs { quiet: true }
+ GET /stock 200 in 619ms (next.js: 187ms, proxy.ts: 115ms, application-code: 318ms)
+ GET /stock 200 in 209ms (next.js: 13ms, proxy.ts: 39ms, application-code: 157ms)
+✓ Compiled in 158ms
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (3) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+ GET /stock 200 in 473ms (next.js: 128ms, proxy.ts: 105ms, application-code: 240ms)
+ GET /stock 200 in 324ms (next.js: 7ms, proxy.ts: 25ms, application-code: 293ms)
+ GET /stock 200 in 252ms (next.js: 14ms, proxy.ts: 62ms, application-code: 176ms)
+ GET /stock 200 in 252ms (next.js: 61ms, proxy.ts: 62ms, application-code: 129ms)
+✓ Compiled in 172ms
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (3) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+ GET /stock 200 in 528ms (next.js: 131ms, proxy.ts: 95ms, application-code: 302ms)
+✓ Compiled in 96ms
+✓ Compiled in 207ms
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (3) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+ GET /stock 200 in 512ms (next.js: 133ms, proxy.ts: 81ms, application-code: 299ms)
+ GET /stock 200 in 298ms (next.js: 13ms, proxy.ts: 35ms, application-code: 250ms)
+ GET /stock 200 in 203ms (next.js: 12ms, proxy.ts: 85ms, application-code: 106ms)
+ GET /stock 200 in 203ms (next.js: 44ms, proxy.ts: 86ms, application-code: 73ms)
+✓ Compiled in 49ms
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (3) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+ GET /stock 200 in 357ms (next.js: 137ms, proxy.ts: 72ms, application-code: 148ms)
+ GET /stock 200 in 129ms (next.js: 8ms, proxy.ts: 60ms, application-code: 61ms)
+✓ Compiled in 40ms
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+◇ injected env (3) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+ GET /stock 200 in 438ms (next.js: 147ms, proxy.ts: 85ms, application-code: 206ms)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Tracker",
+          supplierId: null,
+          costPrice: "300",
+          salePrice: "1000",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+[actions/devices/add] Error [PrismaClientValidationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Tracker",
+          supplierId: null,
+          costPrice: "300",
+          salePrice: "1000",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+    at <unknown> (actions\devices.ts:32:25)
+    at async addDevice (actions\devices.ts:32:5)
+  30 |     const d = parsed.data;
+  31 |
+> 32 |     await prisma.device.create({
+     |                         ^
+  33 |       data: {
+  34 |         orgId,
+  35 |         fmModule: d.fmModule, {
+  clientVersion: '7.8.0'
+}
+ POST /stock 200 in 487ms (next.js: 7ms, proxy.ts: 13ms, application-code: 467ms)
+  └─ ƒ addDevice(null, {}) in 441ms actions/devices.ts
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Tracker",
+          supplierId: null,
+          costPrice: "200",
+          salePrice: "2500",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+[actions/devices/add] Error [PrismaClientValidationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Tracker",
+          supplierId: null,
+          costPrice: "200",
+          salePrice: "2500",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+    at <unknown> (actions\devices.ts:32:25)
+    at async addDevice (actions\devices.ts:32:5)
+  30 |     const d = parsed.data;
+  31 |
+> 32 |     await prisma.device.create({
+     |                         ^
+  33 |       data: {
+  34 |         orgId,
+  35 |         fmModule: d.fmModule, {
+  clientVersion: '7.8.0'
+}
+ POST /stock 200 in 454ms (next.js: 5ms, proxy.ts: 9ms, application-code: 441ms)
+  └─ ƒ addDevice({"error":"Failed to add device. Please try again.","success":false}, {}) in 414ms actions/devices.ts
+✓ Compiled in 162ms
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (3) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+ GET /stock 200 in 489ms (next.js: 10ms, proxy.ts: 13ms, application-code: 467ms)
+ GET /stock 200 in 522ms (next.js: 109ms, proxy.ts: 83ms, application-code: 330ms)
+ GET /stock 200 in 199ms (next.js: 9ms, proxy.ts: 69ms, application-code: 120ms)
+ GET /stock 200 in 198ms (next.js: 40ms, proxy.ts: 69ms, application-code: 89ms)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Tracker",
+          supplierId: null,
+          costPrice: "300",
+          salePrice: "2000",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+[actions/devices/add] Error [PrismaClientValidationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Tracker",
+          supplierId: null,
+          costPrice: "300",
+          salePrice: "2000",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+    at <unknown> (actions\devices.ts:32:25)
+    at async addDevice (actions\devices.ts:32:5)
+  30 |     const d = parsed.data;
+  31 |
+> 32 |     await prisma.device.create({
+     |                         ^
+  33 |       data: {
+  34 |         orgId,
+  35 |         fmModule: d.fmModule, {
+  clientVersion: '7.8.0'
+}
+ POST /stock 200 in 354ms (next.js: 6ms, proxy.ts: 10ms, application-code: 338ms)
+  └─ ƒ addDevice({"error":"Failed to add device. Please try again.","success":false}, {}) in 319ms actions/devices.ts
+ GET /stock 200 in 271ms (next.js: 5ms, proxy.ts: 9ms, application-code: 257ms)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Trackering ",
+          supplierId: null,
+          costPrice: "200",
+          salePrice: "300",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+[actions/devices/add] Error [PrismaClientValidationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          fmModule: "Trackering ",
+          supplierId: null,
+          costPrice: "200",
+          salePrice: "300",
+          status: "in_stock",
+      +   imeiNo: String
+        }
+      })
+
+Argument `imeiNo` is missing.
+    at <unknown> (actions\devices.ts:32:25)
+    at async addDevice (actions\devices.ts:32:5)
+  30 |     const d = parsed.data;
+  31 |
+> 32 |     await prisma.device.create({
+     |                         ^
+  33 |       data: {
+  34 |         orgId,
+  35 |         fmModule: d.fmModule, {
+  clientVersion: '7.8.0'
+}
+ POST /stock 200 in 333ms (next.js: 5ms, proxy.ts: 7ms, application-code: 320ms)
+  └─ ƒ addDevice(null, {}) in 312ms actions/devices.ts
+✓ Compiled in 169ms
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (3) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+ GET /stock 200 in 615ms (next.js: 181ms, proxy.ts: 108ms, application-code: 326ms)
+ GET /stock 200 in 299ms (next.js: 12ms, proxy.ts: 31ms, application-code: 256ms)
+ GET /stock 200 in 221ms (next.js: 17ms, proxy.ts: 99ms, application-code: 105ms)
+ GET /stock 200 in 221ms (next.js: 41ms, proxy.ts: 100ms, application-code: 79ms)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          imeiNo: null,
+          gsmNo: null,
+          gsmNoAlt: null,
+          cutOff: null,
+          fmModule: "tester",
+          supplierId: null,
+          costPrice: "200",
+          salePrice: "2500",
+          status: "in_stock",
+      +   organization: {
+      +     create: OrganizationCreateWithoutDevicesInput | OrganizationUncheckedCreateWithoutDevicesInput,
+      +     connectOrCreate: OrganizationCreateOrConnectWithoutDevicesInput,
+      +     connect: OrganizationWhereUniqueInput
+      +   }
+        }
+      })
+
+Argument `organization` is missing.
+[actions/devices/add] Error [PrismaClientValidationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create()` invocation in
+C:\Users\hairb\Desktop\tracking\.next\dev\server\chunks\ssr\[root-of-the-server]__04vs1h0._.js:297:165
+
+  294     };
+  295 }
+  296 const d = parsed.data;
+→ 297 await __TURBOPACK__imported__module__$5b$project$5d2f$Desktop$2f$tracking$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["prisma"].device.create({
+        data: {
+          orgId: "93c541a9-96a1-457b-8bcd-dee7253f1ca9",
+          imeiNo: null,
+          gsmNo: null,
+          gsmNoAlt: null,
+          cutOff: null,
+          fmModule: "tester",
+          supplierId: null,
+          costPrice: "200",
+          salePrice: "2500",
+          status: "in_stock",
+      +   organization: {
+      +     create: OrganizationCreateWithoutDevicesInput | OrganizationUncheckedCreateWithoutDevicesInput,
+      +     connectOrCreate: OrganizationCreateOrConnectWithoutDevicesInput,
+      +     connect: OrganizationWhereUniqueInput
+      +   }
+        }
+      })
+
+Argument `organization` is missing.
+    at <unknown> (actions\devices.ts:32:25)
+    at async addDevice (actions\devices.ts:32:5)
+  30 |     const d = parsed.data;
+  31 |
+> 32 |     await prisma.device.create({
+     |                         ^
+  33 |       data: {
+  34 |         orgId,
+  35 |         imeiNo: null, {
+  clientVersion: '7.8.0'
+}
+ POST /stock 200 in 443ms (next.js: 7ms, proxy.ts: 15ms, application-code: 421ms)
+  └─ ƒ addDevice({"error":"Failed to add device. Please try again.","success":false}, {}) in 379ms actions/devices.ts
+✓ Compiled in 139ms
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (3) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+ GET /stock 200 in 435ms (next.js: 121ms, proxy.ts: 78ms, application-code: 236ms)
+ GET /stock 200 in 227ms (next.js: 6ms, proxy.ts: 25ms, application-code: 196ms)
+ GET /stock 200 in 165ms (next.js: 12ms, proxy.ts: 60ms, application-code: 93ms)
+ GET /stock 200 in 298ms (next.js: 37ms, proxy.ts: 60ms, application-code: 202ms)
+ POST /stock 200 in 193ms (next.js: 4ms, proxy.ts: 9ms, application-code: 179ms)
+  └─ ƒ addDevice({"error":"Failed to add device. Please try again.","success":false}, {}) in 88ms actions/devices.ts
+✓ Compiled in 31ms
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+ GET /stock 200 in 542ms (next.js: 192ms, proxy.ts: 122ms, application-code: 229ms)
+ GET /stock 200 in 118ms (next.js: 6ms, proxy.ts: 22ms, application-code: 90ms)
+✓ Compiled in 137ms
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (3) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+ GET /stock 200 in 489ms (next.js: 130ms, proxy.ts: 130ms, application-code: 229ms)
+ GET /stock 200 in 224ms (next.js: 6ms, proxy.ts: 138ms, application-code: 81ms)
+ GET /stock 200 in 105ms (next.js: 5ms, proxy.ts: 48ms, application-code: 53ms)
+ GET /stock 200 in 95ms (next.js: 8ms, proxy.ts: 27ms, application-code: 61ms)
+✓ Compiled in 90ms
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (3) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+ GET /stock 200 in 353ms (next.js: 133ms, proxy.ts: 79ms, application-code: 142ms)
+✓ Compiled in 37ms
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /stock 200 in 392ms (next.js: 133ms, proxy.ts: 109ms, application-code: 150ms)
+✓ Compiled in 39ms
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /stock 200 in 439ms (next.js: 162ms, proxy.ts: 127ms, application-code: 150ms)
+✓ Compiled in 47ms
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (3) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+ GET /stock 200 in 413ms (next.js: 144ms, proxy.ts: 124ms, application-code: 145ms)
+✓ Compiled in 46ms
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+◇ injected env (3) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+ GET /stock 200 in 345ms (next.js: 130ms, proxy.ts: 77ms, application-code: 138ms)
+ GET /stock 200 in 94ms (next.js: 6ms, proxy.ts: 39ms, application-code: 48ms)
+[browser] Received NaN for the `children` attribute. If this is expected, cast the value to a string. 
+✓ Compiled in 54ms
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ◈ encrypted .env [www.dotenvx.com]
+ GET /stock 200 in 466ms (next.js: 142ms, proxy.ts: 98ms, application-code: 227ms)
+ GET /stock 200 in 146ms (next.js: 6ms, proxy.ts: 25ms, application-code: 116ms)
+✓ Compiled in 168ms
+✓ Compiled in 75ms
+✓ Compiled in 87ms
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+◇ injected env (3) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+ GET /stock 200 in 430ms (next.js: 143ms, proxy.ts: 43ms, application-code: 244ms)
+ GET /stock 200 in 567ms (next.js: 8ms, proxy.ts: 70ms, application-code: 489ms)
+ GET /stock 200 in 2.0s (next.js: 474ms, proxy.ts: 438ms, application-code: 1134ms)
+ GET /stock 200 in 502ms (next.js: 15ms, proxy.ts: 42ms, application-code: 445ms)
+ GET /stock 200 in 502ms (next.js: 61ms, proxy.ts: 42ms, application-code: 399ms)
+ GET /stock 200 in 502ms (next.js: 101ms, proxy.ts: 42ms, application-code: 359ms)
+ GET /stock 200 in 1494ms (next.js: 120ms, proxy.ts: 74ms, application-code: 1300ms)
+ GET /stock 200 in 1490ms (next.js: 443ms, proxy.ts: 75ms, application-code: 973ms)
+ GET /stock 200 in 1495ms (next.js: 815ms, proxy.ts: 74ms, application-code: 606ms)
+ GET /stock 200 in 1524ms (next.js: 21ms, proxy.ts: 1266ms, application-code: 237ms)
+ GET /stock 200 in 1525ms (next.js: 52ms, proxy.ts: 1265ms, application-code: 208ms)
+ GET /stock 200 in 1523ms (next.js: 95ms, proxy.ts: 1267ms, application-code: 161ms)
+ GET /stock 200 in 490ms (next.js: 13ms, proxy.ts: 100ms, application-code: 377ms)
+ GET /stock 200 in 494ms (next.js: 57ms, proxy.ts: 98ms, application-code: 339ms)
+ GET /stock 200 in 494ms (next.js: 92ms, proxy.ts: 96ms, application-code: 306ms)
+ GET /stock 200 in 490ms (next.js: 44ms, proxy.ts: 180ms, application-code: 265ms)
+ GET /stock 200 in 489ms (next.js: 112ms, proxy.ts: 186ms, application-code: 191ms)
+ GET /stock 200 in 490ms (next.js: 69ms, proxy.ts: 185ms, application-code: 236ms)
+ GET /stock 200 in 316ms (next.js: 13ms, proxy.ts: 90ms, application-code: 214ms)
+ GET /stock 200 in 312ms (next.js: 44ms, proxy.ts: 88ms, application-code: 180ms)
+ GET /stock 200 in 309ms (next.js: 81ms, proxy.ts: 85ms, application-code: 143ms)
+ GET /stock 200 in 277ms (next.js: 18ms, proxy.ts: 154ms, application-code: 104ms)
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+◇ injected env (3) from .env.local // tip: ⌁ auth for agents [www.vestauth.com]
+ GET /stock 200 in 689ms (next.js: 228ms, proxy.ts: 198ms, application-code: 263ms)
+⨯ TypeError: Cannot read properties of undefined (reading 'findMany')
+    at SuppliersPage (app\(app)\suppliers\page.tsx:24:28)
+  22 |       orderBy: { name: "asc" },
+  23 |     }),
+> 24 |     prisma.purchaseInvoice.findMany({
+     |                            ^
+  25 |       where: { orgId },
+  26 |       include: {
+  27 |         supplier: { select: { name: true } }, {
+  digest: '316313102'
+}
+ GET /suppliers 200 in 2.5s (next.js: 2.3s, proxy.ts: 14ms, application-code: 164ms)
+[browser] Uncaught TypeError: Cannot read properties of undefined (reading 'findMany')
+    at SuppliersPage (app\(app)\suppliers\page.tsx:24:28)
+  22 |       orderBy: { name: "asc" },
+  23 |     }),
+> 24 |     prisma.purchaseInvoice.findMany({
+     |                            ^
+  25 |       where: { orgId },
+  26 |       include: {
+  27 |         supplier: { select: { name: true } },
+[?25h
