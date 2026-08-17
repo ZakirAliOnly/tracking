@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { resolveInstallationAccount } from "@/lib/accounts";
 import { resolveInstallationDevices, type DeviceLine } from "@/lib/devices";
 import { normalizeRegistration } from "@/lib/import-plan";
@@ -116,7 +117,7 @@ export async function upsertCustomer(
     if (id) {
       await prisma.customer.update({ where: { id, orgId }, data });
     } else if (resolvedInstallations.length > 0) {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const customer = await tx.customer.create({ data: { orgId, ...data } });
 
         for (const resolved of resolvedInstallations) {
