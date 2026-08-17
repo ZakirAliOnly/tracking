@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { resolvePayingAccount } from "@/lib/accounts";
 import {
   addSupplierSchema,
   editSupplierSchema,
@@ -141,6 +142,7 @@ export async function createPurchaseInvoice(
       costPrice: formData.get("costPrice"),
       salePrice: formData.get("salePrice") || undefined,
       amountPaid: formData.get("amountPaid") || undefined,
+      accountId: formData.get("accountId") || null,
       invoiceDate: formData.get("invoiceDate"),
       notes: formData.get("notes") || undefined,
     });
@@ -154,14 +156,19 @@ export async function createPurchaseInvoice(
     const totalAmount = quantity * costPrice;
     const id = randomUUID();
 
+    const accountResolution = await resolvePayingAccount(orgId, d.accountId || null, amountPaid);
+    if (!accountResolution.ok) return { success: false, error: accountResolution.error };
+    const accountId = accountResolution.accountId;
+
     await prisma.$transaction([
       prisma.$executeRaw`
-        INSERT INTO purchase_invoices (id, org_id, supplier_id, device_id, quantity, cost_price, sale_price, total_amount, amount_paid, notes, invoice_date, created_at)
+        INSERT INTO purchase_invoices (id, org_id, supplier_id, device_id, account_id, quantity, cost_price, sale_price, total_amount, amount_paid, notes, invoice_date, created_at)
         VALUES (
           ${id},
           ${orgId},
           ${d.supplierId},
           ${d.deviceId},
+          ${accountId},
           ${quantity},
           ${costPrice},
           ${salePrice},
@@ -185,6 +192,7 @@ export async function createPurchaseInvoice(
 
     revalidatePath("/suppliers");
     revalidatePath("/stock");
+    revalidatePath("/payment-methods");
     return { success: true };
   } catch (error) {
     console.error("[suppliers/purchase-invoice]", error);

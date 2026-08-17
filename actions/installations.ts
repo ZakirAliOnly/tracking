@@ -1,15 +1,17 @@
 "use server";
 
-import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { installationBatchSchema } from "@/lib/validations/installation";
+import { resolveInstallationAccount } from "@/lib/accounts";
+import { resolveInstallationDevices } from "@/lib/devices";
+import { resolvePayment } from "@/lib/installation-money";
+import { writeInstallation } from "@/lib/installation-write";
+import { installationFormSchema, toDeviceLines } from "@/lib/validations/import";
 
 export type InstallationActionState = {
   success: boolean;
   error?: string;
-  count?: number;
 } | null;
 
 export async function createInstallations(
@@ -21,120 +23,69 @@ export async function createInstallations(
     if (!session) return { success: false, error: "Unauthorized" };
     const { orgId } = session.user;
 
-    let devicesJson: unknown;
-    try {
-      devicesJson = JSON.parse((formData.get("devices") as string) ?? "[]");
-    } catch {
-      return { success: false, error: "Invalid form data." };
-    }
-
-    const parsed = installationBatchSchema.safeParse({
-      customerId: formData.get("customerId"),
+    const parsed = installationFormSchema.safeParse({
+      customerName: formData.get("customerName"),
+      registrationNo: formData.get("registrationNo"),
       installationDate: formData.get("installationDate"),
-      nextRenewalDate: formData.get("nextRenewalDate"),
-      accountId: formData.get("accountId") || null,
-      discount: formData.get("discount") || undefined,
-      amountPaid: formData.get("amountPaid") || undefined,
-      devices: devicesJson,
+      deviceIds: formData.getAll("deviceId").map(String),
+      deviceQuantities: formData.getAll("deviceQuantity").map(String),
+      amount: formData.get("amount") ?? undefined,
+      simPayment: formData.get("simPayment") ?? undefined,
+      discountMode: formData.get("discountMode") ?? undefined,
+      discountValue: formData.get("discountValue") ?? undefined,
+      amountPaid: formData.get("amountPaid") ?? undefined,
+      simNo: formData.get("simNo") ?? undefined,
+      accountId: formData.get("accountId") ?? undefined,
     });
 
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0].message };
     }
 
-    const { customerId, installationDate, nextRenewalDate, accountId, discount, amountPaid, devices } = parsed.data;
-    const installDate = new Date(installationDate ?? new Date().toISOString().slice(0, 10));
-    const renewalDate = nextRenewalDate
-      ? new Date(nextRenewalDate)
-      : new Date(new Date().setFullYear(new Date().getFullYear() + 1));
-    const totalDiscount = parseFloat(discount ?? "0") || 0;
-    const totalAmountPaid = parseFloat(amountPaid ?? "0") || 0;
-    const n = devices.length;
+    const input = parsed.data;
 
-    // Distribute discount and amountPaid proportionally across devices
-    const discountPer = n > 0 ? totalDiscount / n : 0;
-    const paidPer = n > 0 ? totalAmountPaid / n : 0;
+    const account = await resolveInstallationAccount(orgId, input.accountId);
+    if (!account.ok) return { success: false, error: account.error };
 
-    for (const row of devices) {
-      // Verify the device belongs to this org and is in stock
-      const stockDevice = await prisma.device.findFirst({
-        where: { id: row.deviceId, orgId },
-      });
-      if (!stockDevice) {
-        return { success: false, error: `Device not found in your stock.` };
-      }
+    const devices = await resolveInstallationDevices(
+      orgId,
+      toDeviceLines(input.deviceIds, input.deviceQuantities)
+    );
+    if (!devices.ok) return { success: false, error: devices.error };
 
-      const salePrice = parseFloat(row.salePrice ?? "") || Number(stockDevice.salePrice ?? 0);
-      const installId = randomUUID();
+    const payment = resolvePayment(input);
 
-      // Wrap all writes in a transaction so nothing commits if any step fails
-      await prisma.$transaction(async (tx) => {
-        const vehicle = await tx.vehicle.upsert({
-          where: { orgId_registrationNo: { orgId, registrationNo: row.registrationNo } },
-          create: {
-            orgId,
-            customerId,
-            registrationNo: row.registrationNo,
-            make: row.vehicleMake || null,
-            model: row.vehicleModel || null,
-            colour: row.vehicleColour || null,
-          },
-          update: {
-            customerId,
-            make: row.vehicleMake || null,
-            model: row.vehicleModel || null,
-            colour: row.vehicleColour || null,
-          },
-        });
+    // Resolved by name, the same rule the CSV import uses — no match creates one
+    const existing = await prisma.customer.findFirst({
+      where: { orgId, name: { equals: input.customerName, mode: "insensitive" } },
+      select: { id: true },
+    });
 
-        // Create a new device record for this specific installed unit (with its own IMEI)
-        const installedDevice = await tx.device.create({
-          data: {
-            orgId,
-            supplierId: stockDevice.supplierId ?? null,
-            imeiNo: row.imeiNo || null,
-            gsmNo: row.gsmNo || stockDevice.gsmNo || null,
-            gsmNoAlt: stockDevice.gsmNoAlt ?? null,
-            fmModule: stockDevice.fmModule ?? null,
-            cutOff: stockDevice.cutOff ?? null,
-            costPrice: stockDevice.costPrice ?? null,
-            salePrice: salePrice,
-            quantity: 0,
-            status: "installed",
-          },
-        });
-
-        // Decrement stock; mark as installed when stock runs out
-        await tx.device.update({
-          where: { id: stockDevice.id },
-          data: {
-            quantity: { decrement: 1 },
-            status: stockDevice.quantity <= 1 ? "installed" : stockDevice.status,
-          },
-        });
-
-        // Use $executeRaw to avoid stale-client issues with new discount/amount_paid columns
-        await tx.$executeRaw`
-          INSERT INTO installations (
-            id, org_id, customer_id, vehicle_id, device_id, account_id,
-            installation_date, installation_pay, sim_payment, device_payment, net_payment,
-            discount, amount_paid, next_renewal_date, status, created_at
-          ) VALUES (
-            ${installId}, ${orgId}, ${customerId}, ${vehicle.id}, ${installedDevice.id},
-            ${accountId || null},
-            ${installDate}::date, 0, 0, ${salePrice}, 0,
-            ${discountPer}, ${paidPer},
-            ${renewalDate}::date, 'active', NOW()
-          )
-        `;
-      });
-    }
+    await prisma.$transaction((tx) =>
+      writeInstallation(tx, orgId, {
+        customerId: existing?.id ?? null,
+        customerName: input.customerName,
+        registrationNo: input.registrationNo,
+        installationDate: input.installationDate,
+        received: payment.received,
+        amount: input.amount,
+        simPayment: input.simPayment,
+        simNo: input.simNo,
+        accountId: account.accountId,
+        devices: devices.lines,
+        discount: payment.discount,
+        amountPaid: payment.amountPaid,
+      })
+    );
 
     revalidatePath("/installations");
+    revalidatePath("/customers");
+    revalidatePath("/renewals");
+    revalidatePath("/payment-methods");
     revalidatePath("/stock");
-    return { success: true, count: devices.length };
+    return { success: true };
   } catch (error) {
     console.error("[actions/installations]", error);
-    return { success: false, error: "Failed to save installations. Please try again." };
+    return { success: false, error: "Failed to save the installation. Please try again." };
   }
 }

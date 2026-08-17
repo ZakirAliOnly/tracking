@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { CreditCard, ArrowLeftRight, Plus, Pencil, Trash2, DollarSign, Clock } from "lucide-react";
-import { AddAccountDrawer, type AccountEditTarget } from "./AddAccountDrawer";
-import { TransferFundsDrawer, type AccountOption } from "./TransferFundsDrawer";
+import { AddAccountModal, type AccountEditTarget } from "./AddAccountModal";
+import { TransferFundsModal, type AccountOption } from "./TransferFundsModal";
 import { deleteAccount } from "@/actions/accounts";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export type AccountRow = {
   id: string;
@@ -65,13 +66,13 @@ export function AccountsView({ accounts, transfers, todayTransfers }: Props) {
 
   return (
     <>
-      <AddAccountDrawer
+      <AddAccountModal
         open={addOpen || !!editTarget}
         onClose={() => { setAddOpen(false); setEditTarget(null); }}
         editTarget={editTarget}
       />
 
-      <TransferFundsDrawer
+      <TransferFundsModal
         open={transferOpen}
         onClose={() => { setTransferOpen(false); setTransferFromId(null); }}
         accounts={accountOptions}
@@ -90,7 +91,7 @@ export function AccountsView({ accounts, transfers, todayTransfers }: Props) {
         <button
           onClick={() => setAddOpen(true)}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-          style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+          style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
         >
           <Plus className="h-4 w-4" />
           Add method
@@ -103,7 +104,7 @@ export function AccountsView({ accounts, transfers, todayTransfers }: Props) {
         {accounts.length === 0 ? (
           <div
             className="flex flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-surface py-14"
-            style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+            style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-accent-light">
               <CreditCard className="h-6 w-6 text-accent" />
@@ -139,7 +140,7 @@ export function AccountsView({ accounts, transfers, todayTransfers }: Props) {
         <SectionHeader icon={DollarSign} label="Today's transactions" count={todayTransfers.length} />
         <div
           className="rounded-[20px] border border-border bg-surface"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
         >
           {todayTransfers.length === 0 ? (
             <p className="py-8 text-center text-[13px] text-text-muted">No transactions today yet.</p>
@@ -154,7 +155,7 @@ export function AccountsView({ accounts, transfers, todayTransfers }: Props) {
         <SectionHeader icon={Clock} label="Transactions" count={transfers.length} />
         <div
           className="rounded-[20px] border border-border bg-surface"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
         >
           {transfers.length === 0 ? (
             <p className="py-8 text-center text-[13px] text-text-muted">No transfers yet.</p>
@@ -181,7 +182,7 @@ function AccountCard({
   return (
     <div
       className="flex flex-col rounded-[20px] border border-border bg-surface p-5"
-      style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+      style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
     >
       {/* Top row */}
       <div className="flex items-start justify-between">
@@ -210,13 +211,14 @@ function AccountCard({
             }}
           >
             <input type="hidden" name="id" value={account.id} />
-            <button
-              type="submit"
-              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-error-light hover:text-error"
+            <SubmitButton
+              pendingLabel=""
+              spinnerClassName="h-3.5 w-3.5"
+              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-error-light hover:text-error disabled:opacity-60"
               aria-label="Delete"
             >
               <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </div>

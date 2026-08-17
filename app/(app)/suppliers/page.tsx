@@ -8,8 +8,8 @@ import {
   type InvoiceRow,
   type SupplierStats,
 } from "@/components/suppliers/SuppliersView";
-import type { AccountOption } from "@/components/suppliers/PaySupplierDrawer";
-import type { SupplierOption, DeviceOption } from "@/components/suppliers/NewInvoiceDrawer";
+import type { AccountOption } from "@/components/suppliers/PaySupplierModal";
+import type { SupplierOption, DeviceOption } from "@/components/suppliers/NewInvoiceModal";
 
 export default async function SuppliersPage() {
   const session = await auth();

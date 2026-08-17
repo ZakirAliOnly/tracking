@@ -2,8 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { Package, Plus, MoreHorizontal } from "lucide-react";
-import { AddDeviceDrawer, type SupplierOption } from "@/components/stock/AddDeviceDrawer";
-import { EditDeviceDrawer, type EditDeviceTarget } from "@/components/stock/EditDeviceDrawer";
+import { AddDeviceModal, type SupplierOption } from "@/components/stock/AddDeviceModal";
+import { EditDeviceModal, type EditDeviceTarget } from "@/components/stock/EditDeviceModal";
 
 export type DeviceStatus = "in_stock" | "faulty" | "returned";
 
@@ -60,7 +60,7 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
   return (
     <div
       className="flex flex-col gap-1 rounded-[16px] border border-border bg-surface px-6 py-5"
-      style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+      style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
     >
       <p className="text-[13px] font-medium text-text-secondary">{label}</p>
       <p className={`font-display text-[32px] font-bold leading-9 ${accent ?? "text-text-primary"}`}>
@@ -91,13 +91,13 @@ export function StockView({ devices, stats, suppliers }: Props) {
 
   return (
     <>
-      <AddDeviceDrawer
+      <AddDeviceModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
         suppliers={suppliers}
       />
 
-      <EditDeviceDrawer
+      <EditDeviceModal
         open={!!editTarget}
         onClose={handleCloseEdit}
         device={editTarget}
@@ -124,7 +124,7 @@ export function StockView({ devices, stats, suppliers }: Props) {
         <button
           onClick={() => setAddOpen(true)}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-          style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+          style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
         >
           <Plus className="h-4 w-4" />
           Add device
@@ -141,7 +141,7 @@ export function StockView({ devices, stats, suppliers }: Props) {
       {/* Table */}
       <div
         className="rounded-[20px] border border-border bg-surface"
-        style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+        style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
         {filtered.length === 0 ? (
           <EmptyState filter={filter} />

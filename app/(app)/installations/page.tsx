@@ -5,8 +5,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import {
   InstallationsView,
   type InstallationRow,
-  type StockDeviceOption,
 } from "@/components/installations/InstallationsView";
+import { listActiveAccounts } from "@/lib/accounts";
+import { listInstallableDevices } from "@/lib/devices";
 import { RENEWAL_REMINDER_DAYS } from "@/lib/utils";
 
 export default async function InstallationsPage() {
@@ -19,7 +20,7 @@ export default async function InstallationsPage() {
   const soonCutoff = new Date();
   soonCutoff.setDate(today.getDate() + RENEWAL_REMINDER_DAYS);
 
-  const [raw, customers, accounts, stockDevices] = await Promise.all([
+  const [raw, customers, accounts, devices] = await Promise.all([
     prisma.installation.findMany({
       where: { orgId },
       include: {
@@ -44,6 +45,13 @@ export default async function InstallationsPage() {
           },
         },
         account: { select: { name: true } },
+        devices: {
+          select: {
+            quantity: true,
+            unitPrice: true,
+            device: { select: { fmModule: true, imeiNo: true } },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -52,33 +60,36 @@ export default async function InstallationsPage() {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    prisma.account.findMany({
-      where: { orgId, isActive: true },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.device.findMany({
-      where: { orgId, status: "in_stock", quantity: { gt: 0 } },
-      select: { id: true, fmModule: true, imeiNo: true, gsmNo: true, salePrice: true, quantity: true },
-      orderBy: { fmModule: "asc" },
-    }),
+    listActiveAccounts(orgId),
+    listInstallableDevices(orgId),
   ]);
 
   const installations: InstallationRow[] = raw.map((i) => {
     const vehicleDescription =
-      [i.vehicle.make, i.vehicle.model].filter(Boolean).join(" ") ||
-      i.vehicle.registrationNo;
+      [i.vehicle.make, i.vehicle.model].filter(Boolean).join(" ") || i.vehicle.registrationNo;
 
     return {
       id: i.id,
       customerName: i.customer.name,
       vehicleDescription,
       registrationNo: i.vehicle.registrationNo,
-      imeiNo: i.device.imeiNo,
-      gsmNo: i.device.gsmNo,
-      gsmNoAlt: i.device.gsmNoAlt,
-      fmModule: i.device.fmModule,
-      cutOff: i.device.cutOff,
+      simNo: i.simNo,
+      received: i.received,
+      amount: i.installationPay.toString(),
+      simPayment: i.simPayment.toString(),
+      discount: i.discount.toString(),
+      amountPaid: i.amountPaid.toString(),
+      fittedDevices: i.devices.map((d) => ({
+        name: d.device.fmModule ?? d.device.imeiNo ?? "Device",
+        quantity: d.quantity,
+        unitPrice: d.unitPrice.toString(),
+      })),
+      // Only rows created before the form was simplified carry a device
+      imeiNo: i.device?.imeiNo ?? null,
+      gsmNo: i.device?.gsmNo ?? null,
+      gsmNoAlt: i.device?.gsmNoAlt ?? null,
+      fmModule: i.device?.fmModule ?? null,
+      cutOff: i.device?.cutOff ?? null,
       engineNo: i.vehicle.engineNo,
       chassisNo: i.vehicle.chassisNo,
       colour: i.vehicle.colour,
@@ -91,27 +102,15 @@ export default async function InstallationsPage() {
     };
   });
 
-  const deviceOptions: StockDeviceOption[] = stockDevices.map((d) => ({
-    id: d.id,
-    label: d.fmModule ?? "Unknown device",
-    imeiNo: d.imeiNo,
-    gsmNo: d.gsmNo,
-    salePrice: d.salePrice?.toString() ?? null,
-    quantity: d.quantity,
-  }));
-
   return (
     <div className="p-6">
-      <PageHeader
-        title="Installations"
-        subtitle="Every device fitted, with payment breakdown"
-      />
+      <PageHeader title="Installations" subtitle="Every vehicle fitted, with its payment" />
       <div className="mt-6">
         <InstallationsView
           installations={installations}
           customers={customers}
           accounts={accounts}
-          deviceOptions={deviceOptions}
+          devices={devices}
         />
       </div>
     </div>

@@ -127,6 +127,7 @@ model Device {
   organization     Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   supplier         Supplier?         @relation(fields: [supplierId], references: [id])
   installations    Installation[]
+  installationLines InstallationDevice[]
   purchaseInvoices PurchaseInvoice[]
 
   @@map("devices")
@@ -146,6 +147,7 @@ model Account {
   renewals         Renewal[]
   expenses         Expense[]
   supplierPayments SupplierPayment[]
+  purchaseInvoices PurchaseInvoice[]
   transfersFrom    FundTransfer[]    @relation("transfers_from")
   transfersTo      FundTransfer[]    @relation("transfers_to")
 
@@ -157,9 +159,11 @@ model Installation {
   orgId            String       @map("org_id")
   customerId       String       @map("customer_id")
   vehicleId        String       @map("vehicle_id")
-  deviceId         String       @map("device_id")
+  deviceId         String?      @map("device_id")
   accountId        String?      @map("account_id")
   installationDate DateTime     @map("installation_date") @db.Date
+  received         Boolean      @default(false)
+  simNo            String?      @map("sim_no")
   installationPay  Decimal      @default(0) @map("installation_pay") @db.Decimal(12, 2)
   simPayment       Decimal      @default(0) @map("sim_payment") @db.Decimal(12, 2)
   devicePayment    Decimal      @default(0) @map("device_payment") @db.Decimal(12, 2)
@@ -173,11 +177,29 @@ model Installation {
   organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   customer         Customer     @relation(fields: [customerId], references: [id])
   vehicle          Vehicle      @relation(fields: [vehicleId], references: [id])
-  device           Device       @relation(fields: [deviceId], references: [id])
+  device           Device?      @relation(fields: [deviceId], references: [id])
   account          Account?     @relation(fields: [accountId], references: [id])
   renewals         Renewal[]
+  devices          InstallationDevice[]
 
   @@map("installations")
+}
+
+/// Every device fitted on an installation. `installations.device_id` still holds
+/// the first one so older rows and read paths keep working.
+model InstallationDevice {
+  id             String       @id @default(uuid())
+  installationId String       @map("installation_id")
+  deviceId       String       @map("device_id")
+  quantity       Int          @default(1)
+  unitPrice      Decimal      @default(0) @map("unit_price") @db.Decimal(12, 2)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  installation   Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  device         Device       @relation(fields: [deviceId], references: [id])
+
+  @@index([installationId])
+  @@index([deviceId])
+  @@map("installation_devices")
 }
 
 model Renewal {
@@ -226,6 +248,7 @@ model PurchaseInvoice {
   orgId       String       @map("org_id")
   supplierId  String       @map("supplier_id")
   deviceId    String       @map("device_id")
+  accountId   String?      @map("account_id")
   quantity    Int
   costPrice   Decimal      @map("cost_price") @db.Decimal(12, 2)
   salePrice   Decimal?     @map("sale_price") @db.Decimal(12, 2)
@@ -237,6 +260,7 @@ model PurchaseInvoice {
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   supplier    Supplier     @relation(fields: [supplierId], references: [id])
   device      Device       @relation(fields: [deviceId], references: [id])
+  account     Account?     @relation(fields: [accountId], references: [id])
 
   @@map("purchase_invoices")
 }

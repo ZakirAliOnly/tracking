@@ -2,7 +2,12 @@ import { z } from "zod";
 
 export const addSupplierSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  phone: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .transform((v) => (v ?? "").replace(/\D/g, ""))
+    .refine((v) => v === "" || v.length === 11, "Phone number must be exactly 11 digits")
+    .transform((v) => (v === "" ? undefined : v)),
   contactName: z.string().optional(),
   address: z.string().optional(),
   openingOwed: z.string().optional(),
@@ -20,6 +25,7 @@ export const purchaseInvoiceSchema = z.object({
   costPrice: z.string().min(1, "Cost price is required"),
   salePrice: z.string().optional(),
   amountPaid: z.string().optional(),
+  accountId: z.string().optional().nullable(),
   invoiceDate: z.string().min(1, "Invoice date is required"),
   notes: z.string().optional(),
 });

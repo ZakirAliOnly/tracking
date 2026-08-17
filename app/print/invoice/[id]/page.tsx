@@ -45,7 +45,7 @@ export default async function PrintInvoicePage({ params }: Props) {
         .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb; }
         .inv-org { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: #111827; }
         .inv-org-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
-        .inv-label h2 { font-size: 28px; font-weight: 800; color: #1d4ed8; letter-spacing: -1px; text-align: right; }
+        .inv-label h2 { font-size: 28px; font-weight: 800; color: #e11d48; letter-spacing: -1px; text-align: right; }
         .inv-label p { font-size: 12px; color: #6b7280; text-align: right; margin-top: 4px; }
         .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
         .inv-party h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 8px; }
@@ -67,7 +67,7 @@ export default async function PrintInvoicePage({ params }: Props) {
         .inv-sum-row.due .val { color: #dc2626; font-weight: 800; font-size: 18px; }
         .inv-sum-row.settled .val { color: #15803d; font-weight: 700; }
         .inv-footer { border-top: 1px solid #e5e7eb; padding-top: 20px; display: flex; justify-content: space-between; color: #9ca3af; font-size: 12px; }
-        .inv-print-btn { position: fixed; top: 16px; right: 16px; background: #1d4ed8; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(29,78,216,0.35); display: flex; align-items: center; gap: 8px; }
+        .inv-print-btn { position: fixed; top: 16px; right: 16px; background: #e11d48; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(225,29,72,0.35); display: flex; align-items: center; gap: 8px; }
         .inv-print-btn:hover { opacity: 0.9; }
         @media print {
           .inv-print-btn { display: none !important; }

@@ -14,7 +14,7 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const ADMIN_EMAIL = "admin@trackfleet.com";
   const ADMIN_PASSWORD = "Admin@123";
-  const ORG_NAME = "TrackFleet";
+  const ORG_NAME = "Real Tracker";
 
   let org = await prisma.organization.findFirst({
     where: { name: ORG_NAME },

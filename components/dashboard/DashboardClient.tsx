@@ -118,7 +118,7 @@ function KpiCard({
   return (
     <div
       className="relative overflow-hidden rounded-[20px] border border-border bg-surface p-5"
-      style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+      style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
     >
       <div className="flex items-start justify-between">
         <div className={`flex h-[38px] w-[38px] flex-none items-center justify-center rounded-[11px] ${KPI_ICON_CLASS[color]}`}>
@@ -238,7 +238,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
       <div className="flex items-center justify-between">
         {/* Period tabs */}
         <div className="flex items-center gap-1 rounded-[9px] border border-border bg-surface p-1"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05)" }}>
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05)" }}>
           {PERIODS.map((p) => (
             <button
               key={p.id}
@@ -259,7 +259,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
 <Link
             href="/installations"
             className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-            style={{ boxShadow: "0 8px 18px -6px rgba(45,107,255,0.5)" }}
+            style={{ boxShadow: "0 8px 18px -6px rgba(225,29,72,0.5)" }}
           >
             <Plus className="h-3.5 w-3.5" />
             New installation
@@ -304,7 +304,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
         {/* Revenue & renewals chart */}
         <div
           className="col-span-2 rounded-[20px] border border-border bg-surface p-5"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
         >
           <div className="mb-4 flex items-start justify-between">
             <div>
@@ -376,7 +376,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
         {/* Top vehicle makes */}
         <div
           className="rounded-[20px] border border-border bg-surface p-5"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
         >
           <p className="font-display text-[15px] font-semibold text-text-primary">Top vehicle makes</p>
           <p className="text-[12px] text-text-muted">Installed fleet by make</p>
@@ -408,7 +408,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
         {/* Recent installations */}
         <div
           className="col-span-2 rounded-[20px] border border-border bg-surface"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
         >
           <div className="flex items-center justify-between px-5 py-4">
             <div>
@@ -450,7 +450,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
         {/* Activity feed */}
         <div
           className="rounded-[20px] border border-border bg-surface p-5"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
         >
           <p className="font-display text-[15px] font-semibold text-text-primary">Activity</p>
           <p className="text-[12px] text-text-muted">Latest events</p>

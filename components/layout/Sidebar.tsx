@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/actions/auth";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import {
   LayoutDashboard,
   Users,
@@ -50,6 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Finance",
     items: [
       { href: "/payment-methods", label: "Payment Methods", icon: CreditCard },
+      { href: "/expenses", label: "Expenses", icon: Receipt },
       { href: "/reports", label: "Reports", icon: BarChart2 },
     ],
   },
@@ -65,13 +67,13 @@ export function Sidebar() {
         <div
           className="flex h-9 w-9 flex-none items-center justify-center rounded-[10px]"
           style={{
-            background: "linear-gradient(135deg, #2D6BFF 0%, #5A8BFF 100%)",
+            background: "linear-gradient(135deg, #E11D48 0%, #FB7185 100%)",
           }}
         >
           <MapPin className="h-[19px] w-[19px] text-accent-foreground" />
         </div>
         <span className="font-display text-[18px] font-bold leading-6 text-text-primary">
-          TrackFleet
+          Real Tracker
         </span>
       </div>
 
@@ -120,7 +122,7 @@ export function Sidebar() {
           <div
             className="flex h-8 w-8 flex-none items-center justify-center rounded-[9px] text-[12px] font-bold font-display text-accent-foreground"
             style={{
-              background: "linear-gradient(135deg, #2D6BFF 0%, #1E54D6 100%)",
+              background: "linear-gradient(135deg, #E11D48 0%, #B0123A 100%)",
             }}
           >
             A
@@ -132,13 +134,14 @@ export function Sidebar() {
             <p className="truncate text-[12px] text-text-muted">Owner</p>
           </div>
           <form action={logoutAction}>
-            <button
-              type="submit"
-              className="flex-none text-text-muted hover:text-text-primary transition-colors"
+            <SubmitButton
+              pendingLabel=""
+              spinnerClassName="h-4 w-4"
+              className="flex-none text-text-muted hover:text-text-primary transition-colors disabled:opacity-60"
               aria-label="Sign out"
             >
               <LogOut className="h-4 w-4" />
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </div>

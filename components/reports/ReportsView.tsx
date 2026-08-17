@@ -12,18 +12,21 @@ import {
   type InstallRow,
   type RenewalRow,
   type SupplierReportRow,
-  type PaymentRow,
+  type PaymentMethodRow,
   type StockRow,
 } from "@/actions/reports";
+import { useToast } from "@/components/ui/ToastProvider";
 
 /* ─── Config ──────────────────────────────────────────────────── */
+
+export type AccountOption = { id: string; name: string };
 
 const REPORT_TYPES = [
   { id: "overview" as ReportType, label: "Overview", icon: BarChart2, desc: "Revenue, collections and balance due for a period" },
   { id: "installations" as ReportType, label: "Installations", icon: HardDrive, desc: "Detailed installation register with totals" },
   { id: "renewals" as ReportType, label: "Renewals", icon: RefreshCw, desc: "Renewal records with received/pending status" },
   { id: "suppliers" as ReportType, label: "Supplier Report", icon: Package, desc: "Purchase invoices and supplier payment summary" },
-  { id: "payments" as ReportType, label: "Fund Transfers", icon: CreditCard, desc: "Transfers between payment methods for a period" },
+  { id: "payment_method" as ReportType, label: "Payment Method Report", icon: CreditCard, desc: "Select a payment method to see its transactions and balance" },
   { id: "stock" as ReportType, label: "Stock Report", icon: Archive, desc: "Current device inventory by status and value" },
 ];
 
@@ -66,17 +69,19 @@ const INPUT = "h-9 rounded-[9px] border border-border bg-surface px-3 text-[13px
 
 /* ─── Main view ───────────────────────────────────────────────── */
 
-export function ReportsView() {
+export function ReportsView({ accounts }: { accounts: AccountOption[] }) {
   const [selected, setSelected] = useState<ReportType>("overview");
   const [dateFrom, setDateFrom] = useState(today());
   const [dateTo, setDateTo] = useState(today());
   const [preset, setPreset] = useState("Today");
+  const [paymentAccountId, setPaymentAccountId] = useState("");
   const [result, setResult] = useState<ReportResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const toast = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
   const selectedLabel = REPORT_TYPES.find(r => r.id === selected)?.label ?? "";
+  const isPaymentMethod = selected === "payment_method";
 
   const applyPreset = (p: typeof PRESETS[0]) => {
     const [f, t] = p.apply();
@@ -87,11 +92,14 @@ export function ReportsView() {
   };
 
   const handleGenerate = () => {
-    setError(null);
+    if (isPaymentMethod && !paymentAccountId) {
+      toast("Select a payment method first");
+      return;
+    }
     startTransition(async () => {
-      const res = await generateReport(selected, dateFrom, dateTo);
+      const res = await generateReport(selected, dateFrom, dateTo, isPaymentMethod ? paymentAccountId : undefined);
       if (res.success && res.result) { setResult(res.result); }
-      else { setError(res.error ?? "Failed to generate report"); setResult(null); }
+      else { toast(res.error ?? "Failed to generate report"); setResult(null); }
     });
   };
 
@@ -134,7 +142,7 @@ export function ReportsView() {
                   ? "border-accent bg-accent-light/20 shadow-sm"
                   : "border-border bg-surface hover:border-accent/40 hover:bg-surface-muted"
               }`}
-              style={isActive ? { boxShadow: "0 0 0 2px rgba(45,107,255,0.15)" } : undefined}
+              style={isActive ? { boxShadow: "0 0 0 2px rgba(225,29,72,0.15)" } : undefined}
             >
               {isActive && (
                 <span className="absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-foreground">
@@ -156,12 +164,28 @@ export function ReportsView() {
       {/* Filter bar */}
       <div
         className="rounded-[16px] border border-border bg-surface px-5 py-4"
-        style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+        style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
       >
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-accent">
           Filters — {selectedLabel}
         </p>
         <div className="flex flex-wrap items-end gap-3">
+          {isPaymentMethod && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Payment method</label>
+              <div className="relative">
+                <select
+                  value={paymentAccountId}
+                  onChange={e => { setPaymentAccountId(e.target.value); setResult(null); }}
+                  className={INPUT + " appearance-none pr-7 min-w-45"}
+                >
+                  <option value="">Select payment method</option>
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+              </div>
+            </div>
+          )}
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Date from</label>
             <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPreset("Custom"); setResult(null); }} className={INPUT} />
@@ -199,9 +223,9 @@ export function ReportsView() {
             </button>
             <button
               onClick={handleGenerate}
-              disabled={isPending}
+              disabled={isPending || (isPaymentMethod && !paymentAccountId)}
               className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-5 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+              style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
             >
               {isPending && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />}
               {isPending ? "Generating…" : "Generate report"}
@@ -215,25 +239,18 @@ export function ReportsView() {
         )}
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="rounded-[9px] bg-error-light px-4 py-3">
-          <p className="text-[13px] font-medium text-error-foreground">{error}</p>
-        </div>
-      )}
-
       {/* Report output */}
       {result && (
         <div
           ref={printRef}
           className="rounded-[20px] border border-border bg-surface"
-          style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+          style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
         >
           {result.type === "overview" && <OverviewReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
           {result.type === "installations" && <InstallationsReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
           {result.type === "renewals" && <RenewalsReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
           {result.type === "suppliers" && <SuppliersReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
-          {result.type === "payments" && <PaymentsReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
+          {result.type === "payment_method" && <PaymentMethodReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
           {result.type === "stock" && <StockReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
         </div>
       )}
@@ -456,36 +473,43 @@ function SuppliersReport({ data, label, range }: { data: Extract<ReportResult, {
   );
 }
 
-/* ─── Fund Transfers ──────────────────────────────────────────── */
+/* ─── Payment Method Report ───────────────────────────────────── */
 
-function PaymentsReport({ data, label, range }: { data: Extract<ReportResult, { type: "payments" }>; label: string; range: string }) {
+function PaymentMethodReport({ data, label, range }: { data: Extract<ReportResult, { type: "payment_method" }>; label: string; range: string }) {
   const { stats, rows } = data;
   return (
     <>
-      <ReportHeader label={label} range={range} />
-      <div className="grid grid-cols-2 gap-3 p-5">
-        <StatCard label="Transfers" value={String(stats.transferCount)} />
-        <StatCard label="Total Moved" value={fmtRs(stats.totalMoved)} accent="text-accent" />
+      <ReportHeader label={`${label} — ${stats.accountName}`} range={range} />
+      <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4">
+        <StatCard label="Opening Balance" value={fmtRs(stats.openingBalance)} />
+        <StatCard label="Money In" value={fmtRs(stats.moneyIn)} accent="text-success-foreground" />
+        <StatCard label="Money Out" value={fmtRs(stats.moneyOut)} accent="text-error" />
+        <StatCard label="Closing Balance" value={fmtRs(stats.closingBalance)} accent="text-accent" />
       </div>
       <div className="overflow-x-auto border-t border-border">
         <table className="w-full">
           <thead><tr className="border-b border-border bg-surface-muted">
-            {["Date","From","To","Amount","Note"].map(h => <th key={h} className={TH}>{h}</th>)}
+            {["Date","Type","Description","Amount"].map(h => <th key={h} className={TH}>{h}</th>)}
           </tr></thead>
           <tbody>
-            {rows.length === 0 ? <EmptyRows /> : rows.map((r: PaymentRow, i) => (
+            {rows.length === 0 ? <EmptyRows /> : rows.map((r: PaymentMethodRow, i) => (
               <tr key={r.id} className={`transition-colors hover:bg-surface-muted ${i < rows.length - 1 ? "border-b border-border" : ""}`}>
                 <td className={TD + " text-[12px] text-text-muted"}>{fmtDate(r.date)}</td>
-                <td className={TD + " font-semibold"}>{r.from}</td>
-                <td className={TD + " font-semibold"}>{r.to}</td>
-                <td className={TD + " text-error font-semibold"}>{fmtRs(r.amount)}</td>
-                <td className={TD + " text-text-muted"}>{r.note ?? "—"}</td>
+                <td className={TD}>
+                  <span className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-semibold ${r.amount >= 0 ? "bg-success-light text-success-foreground" : "bg-error-light text-error-foreground"}`}>
+                    {r.type}
+                  </span>
+                </td>
+                <td className={TD + " text-text-secondary"}>{r.description}</td>
+                <td className={TD + (r.amount >= 0 ? " text-success-foreground font-semibold" : " text-error font-semibold")}>
+                  {r.amount >= 0 ? "+" : "−"}{fmtRs(Math.abs(r.amount))}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
         <div className="border-t border-border px-5 py-3">
-          <p className="text-[12px] text-text-muted">Showing {rows.length} {rows.length === 1 ? "transfer" : "transfers"}</p>
+          <p className="text-[12px] text-text-muted">Showing {rows.length} {rows.length === 1 ? "transaction" : "transactions"}</p>
         </div>
       </div>
     </>

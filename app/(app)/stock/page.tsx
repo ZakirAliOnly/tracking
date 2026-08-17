@@ -8,7 +8,7 @@ import {
   type DeviceStatus,
   type StockStats,
 } from "@/components/stock/StockView";
-import type { SupplierOption } from "@/components/stock/AddDeviceDrawer";
+import type { SupplierOption } from "@/components/stock/AddDeviceModal";
 
 export default async function StockPage() {
   const session = await auth();

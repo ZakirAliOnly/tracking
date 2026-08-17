@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { Plus, Truck, Package, CircleDollarSign, Pencil, Trash2, BookOpen, Printer } from "lucide-react";
-import { AddSupplierDrawer, type SupplierEditTarget } from "./AddSupplierDrawer";
-import { NewInvoiceDrawer, type SupplierOption, type DeviceOption } from "./NewInvoiceDrawer";
-import { PaySupplierDrawer, type AccountOption, type PayTarget } from "./PaySupplierDrawer";
+import { AddSupplierModal, type SupplierEditTarget } from "./AddSupplierModal";
+import { NewInvoiceModal, type SupplierOption, type DeviceOption } from "./NewInvoiceModal";
+import { PaySupplierModal, type AccountOption, type PayTarget } from "./PaySupplierModal";
 import { SupplierLedgerModal } from "./SupplierLedgerModal";
 import { deleteSupplier } from "@/actions/suppliers";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export type SupplierRow = {
   id: string;
@@ -69,7 +70,7 @@ function StatCard({
   return (
     <div
       className="flex items-center gap-4 rounded-[16px] border border-border bg-surface px-5 py-4"
-      style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 16px -8px rgba(15,27,45,0.10)" }}
+      style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
     >
       <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[12px] bg-accent-light">
         <Icon className="h-5 w-5 text-accent" />
@@ -120,7 +121,7 @@ export function SuppliersView({
 
   return (
     <>
-      <AddSupplierDrawer
+      <AddSupplierModal
         open={addOpen || !!editTarget}
         onClose={() => {
           setAddOpen(false);
@@ -129,15 +130,16 @@ export function SuppliersView({
         editTarget={editTarget}
       />
 
-      <NewInvoiceDrawer
+      <NewInvoiceModal
         open={invoiceOpen}
         onClose={closeInvoice}
         suppliers={supplierOptions}
         devices={deviceOptions}
+        accounts={accounts}
         prefilledSupplierId={invoicePrefilledId}
       />
 
-      <PaySupplierDrawer
+      <PaySupplierModal
         open={!!payTarget}
         onClose={() => setPayTarget(null)}
         target={payTarget}
@@ -183,7 +185,7 @@ export function SuppliersView({
           <button
             onClick={() => setAddOpen(true)}
             className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-            style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+            style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
           >
             <Plus className="h-4 w-4" />
             Add supplier
@@ -216,7 +218,7 @@ export function SuppliersView({
       {/* Table */}
       <div
         className="rounded-[20px] border border-border bg-surface"
-        style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+        style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
         {tab === "suppliers" ? (
           <SuppliersTable
@@ -379,13 +381,14 @@ function SuppliersTable({
                       }}
                     >
                       <input type="hidden" name="id" value={s.id} />
-                      <button
-                        type="submit"
-                        className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-error-light hover:text-error"
+                      <SubmitButton
+                        pendingLabel=""
+                        spinnerClassName="h-3.5 w-3.5"
+                        className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-error-light hover:text-error disabled:opacity-60"
                         aria-label="Delete supplier"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </td>
@@ -427,7 +430,7 @@ function InvoicesTable({
         <button
           onClick={onNewInvoice}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-          style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+          style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
         >
           <Plus className="h-4 w-4" />
           New invoice

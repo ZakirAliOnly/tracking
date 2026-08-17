@@ -3,6 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { updateDevice, type DeviceActionState } from "@/actions/devices";
+import { useActionToast } from "@/components/ui/ToastProvider";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export type EditDeviceTarget = {
   id: string;
@@ -28,10 +30,13 @@ function PriceForm({
   device: EditDeviceTarget;
   onSuccess: () => void;
 }) {
-  const [state, formAction, isPending] = useActionState<DeviceActionState, FormData>(
+  const [state, formAction] = useActionState<DeviceActionState, FormData>(
     updateDevice,
     null
   );
+
+  useActionToast(state?.error);
+
   const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
@@ -48,12 +53,6 @@ function PriceForm({
   return (
     <form key={formKey} action={formAction} className="flex flex-col gap-5">
       <input type="hidden" name="id" value={device.id} />
-
-      {state?.error && !state.success && (
-        <div className="rounded-[9px] bg-error-light px-4 py-3">
-          <p className="text-[13px] font-medium text-error-foreground">{state.error}</p>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
@@ -82,17 +81,13 @@ function PriceForm({
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={isPending}
+      <SubmitButton
+        pendingLabel="Saving…"
         className="h-10 w-full rounded-[9px] bg-accent text-[14px] font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-        style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+        style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
       >
-        {isPending && (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-        )}
-        {isPending ? "Saving…" : "Save prices"}
-      </button>
+        Save prices
+      </SubmitButton>
     </form>
   );
 }
@@ -104,7 +99,7 @@ function FaultyForm({
   device: EditDeviceTarget;
   onSuccess: () => void;
 }) {
-  const [state, formAction, isPending] = useActionState<DeviceActionState, FormData>(
+  const [state, formAction] = useActionState<DeviceActionState, FormData>(
     updateDevice,
     null
   );
@@ -133,16 +128,13 @@ function FaultyForm({
         <form action={formAction}>
           <input type="hidden" name="id" value={device.id} />
           <input type="hidden" name="markFaulty" value="true" />
-          <button
-            type="submit"
-            disabled={isPending}
+          <SubmitButton
+            pendingLabel="Marking…"
+            spinnerClassName="h-3.5 w-3.5"
             className="h-9 w-full rounded-[9px] bg-error text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isPending && (
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            )}
-            {isPending ? "Marking…" : "Mark as faulty"}
-          </button>
+            Mark as faulty
+          </SubmitButton>
 
           {state?.error && !state.success && (
             <p className="mt-2 text-[12px] font-medium text-error-foreground">{state.error}</p>
@@ -153,45 +145,45 @@ function FaultyForm({
   );
 }
 
-export function EditDeviceDrawer({ open, onClose, device }: Props) {
+export function EditDeviceModal({ open, onClose, device }: Props) {
+  if (!open) return null;
+
   return (
     <>
-      <div
-        className={`fixed inset-0 z-40 bg-overlay/40 transition-opacity duration-300 ${
-          open ? "visible opacity-100" : "invisible opacity-0"
-        }`}
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 z-40 bg-overlay/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div
-        className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-[400px] flex-col bg-surface shadow-2xl transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-6 py-5">
-          <div>
-            <h2 className="font-display text-[17px] font-semibold text-text-primary">Edit device</h2>
-            <p className="mt-0.5 text-[13px] text-text-secondary">
-              {device?.fmModule ?? "—"}
-            </p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="flex w-full max-w-[420px] max-h-[92vh] flex-col rounded-[20px] bg-surface"
+          style={{ boxShadow: "0 20px 60px -12px rgba(26,20,20,0.25)" }}
+        >
+          {/* Header */}
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-6 py-5">
+            <div>
+              <h2 className="font-display text-[17px] font-semibold text-text-primary">
+                Edit device
+              </h2>
+              <p className="mt-0.5 text-[13px] text-text-secondary">
+                {device?.fmModule ?? "—"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-[9px] text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-[9px] text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
-          >
-            <X className="h-4 w-4" />
-          </button>
+
+          {device && (
+            <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
+              <PriceForm device={device} onSuccess={onClose} />
+              <div className="border-t border-border" />
+              <FaultyForm device={device} onSuccess={onClose} />
+            </div>
+          )}
         </div>
-
-        {device && (
-          <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
-            <PriceForm device={device} onSuccess={onClose} />
-            <div className="border-t border-border" />
-            <FaultyForm device={device} onSuccess={onClose} />
-          </div>
-        )}
       </div>
     </>
   );

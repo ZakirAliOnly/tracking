@@ -3,7 +3,9 @@
 import { useCallback, useState } from "react";
 import { MoreHorizontal, Plus, BookOpen, CreditCard, Pencil, Users } from "lucide-react";
 import Link from "next/link";
-import { AddCustomerDrawer } from "@/components/customers/AddCustomerDrawer";
+import { AddCustomerModal } from "@/components/customers/AddCustomerModal";
+import type { AccountOption } from "@/lib/accounts";
+import type { InstallableDevice } from "@/lib/device-options";
 
 type CustomerStatus = "active" | "renewal_due" | "inactive";
 
@@ -21,15 +23,17 @@ export type CustomerRow = {
 
 type Props = {
   customers: CustomerRow[];
+  accounts: AccountOption[];
+  devices: InstallableDevice[];
 };
 
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #2D6BFF 0%, #5A8BFF 100%)",
-  "linear-gradient(135deg, #13B981 0%, #34D399 100%)",
-  "linear-gradient(135deg, #7C5CFC 0%, #A78BFA 100%)",
-  "linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)",
-  "linear-gradient(135deg, #EF4D5A 0%, #F87171 100%)",
-  "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)",
+  "linear-gradient(135deg, #E11D48 0%, #FB7185 100%)",
+  "linear-gradient(135deg, #1A1414 0%, #4B4448 100%)",
+  "linear-gradient(135deg, #9D174D 0%, #DB2777 100%)",
+  "linear-gradient(135deg, #B0123A 0%, #F43F5E 100%)",
+  "linear-gradient(135deg, #78123B 0%, #B0123A 100%)",
+  "linear-gradient(135deg, #DC2626 0%, #F87171 100%)",
 ];
 
 function getGradient(name: string): string {
@@ -68,7 +72,7 @@ function StatusPill({ status }: { status: CustomerStatus }) {
 
 type Filter = "all" | "active" | "inactive";
 
-export function CustomersView({ customers }: Props) {
+export function CustomersView({ customers, accounts, devices }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState<CustomerRow | null>(null);
@@ -93,10 +97,12 @@ export function CustomersView({ customers }: Props) {
 
   return (
     <>
-      <AddCustomerDrawer
+      <AddCustomerModal
         open={drawerOpen}
         onClose={handleCloseDrawer}
         customer={editCustomer}
+        accounts={accounts}
+        devices={devices}
       />
 
       {/* Transparent backdrop closes any open dropdown */}
@@ -131,7 +137,7 @@ export function CustomersView({ customers }: Props) {
           }}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
           style={{
-            boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)",
+            boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
           }}
         >
           <Plus className="h-4 w-4" />
@@ -143,7 +149,7 @@ export function CustomersView({ customers }: Props) {
       <div
         className="rounded-[20px] border border-border bg-surface"
         style={{
-          boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)",
+          boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)",
         }}
       >
         {filtered.length === 0 ? (
@@ -200,11 +206,12 @@ export function CustomersView({ customers }: Props) {
                         <p className="text-[14px] font-semibold leading-tight text-text-primary">
                           {customer.name}
                         </p>
-                        <p className="mt-0.5 text-[12px] text-text-muted">
-                          {customer.contactCount === 0
-                            ? "No extra contacts"
-                            : `${customer.contactCount} contact${customer.contactCount > 1 ? "s" : ""}`}
-                        </p>
+                        {customer.contactCount > 0 && (
+                          <p className="mt-0.5 text-[12px] text-text-muted">
+                            {customer.contactCount} contact
+                            {customer.contactCount > 1 ? "s" : ""}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -260,7 +267,7 @@ export function CustomersView({ customers }: Props) {
                           className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-[12px] border border-border bg-surface py-1"
                           style={{
                             boxShadow:
-                              "0 4px 6px -2px rgba(15,27,45,0.05), 0 12px 24px -4px rgba(15,27,45,0.12)",
+                              "0 4px 6px -2px rgba(26,20,20,0.05), 0 12px 24px -4px rgba(26,20,20,0.12)",
                           }}
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -322,7 +329,7 @@ function EmptyState({ filter, onAdd }: { filter: Filter; onAdd: () => void }) {
           onClick={onAdd}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
           style={{
-            boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)",
+            boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
           }}
         >
           <Plus className="h-4 w-4" />

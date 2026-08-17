@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CustomersView, type CustomerRow } from "@/components/customers/CustomersView";
+import { listActiveAccounts } from "@/lib/accounts";
+import { listInstallableDevices } from "@/lib/devices";
 import { RENEWAL_REMINDER_DAYS } from "@/lib/utils";
 
 export default async function CustomersPage() {
@@ -15,18 +17,22 @@ export default async function CustomersPage() {
   const soonCutoff = new Date();
   soonCutoff.setDate(today.getDate() + RENEWAL_REMINDER_DAYS);
 
-  const raw = await prisma.customer.findMany({
-    where: { orgId },
-    include: {
-      contacts: { select: { id: true } },
-      vehicles: { select: { id: true } },
-      installations: {
-        where: { status: "active" },
-        select: { id: true, nextRenewalDate: true },
+  const [raw, accounts, devices] = await Promise.all([
+    prisma.customer.findMany({
+      where: { orgId },
+      include: {
+        contacts: { select: { id: true } },
+        vehicles: { select: { id: true } },
+        installations: {
+          where: { status: "active" },
+          select: { id: true, nextRenewalDate: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    listActiveAccounts(orgId),
+    listInstallableDevices(orgId),
+  ]);
 
   const customers: CustomerRow[] = raw.map((c) => {
     const activeInstallCount = c.installations.length;
@@ -59,7 +65,7 @@ export default async function CustomersPage() {
         subtitle="Clients, contacts and their vehicles"
       />
       <div className="mt-6">
-        <CustomersView customers={customers} />
+        <CustomersView customers={customers} accounts={accounts} devices={devices} />
       </div>
     </div>
   );

@@ -7,59 +7,59 @@
   --font-mono: var(--font-jetbrains), ui-monospace, "JetBrains Mono", monospace;
 
   /* Page and surface backgrounds */
-  --color-background: #f5f7fb;
+  --color-background: #fafafa;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f4f8ff;
-  --color-surface-tertiary: #f0f3f8;
-  --color-surface-muted: #f5f7fb;
+  --color-surface-secondary: #fff4f5;
+  --color-surface-tertiary: #f5f5f5;
+  --color-surface-muted: #fafafa;
 
   /* Borders */
-  --color-border: #e8ecf3;
-  --color-border-light: #f0f3f8;
-  --color-border-muted: #dfe1e7;
+  --color-border: #ece7e7;
+  --color-border-light: #f3f0f0;
+  --color-border-muted: #e2dede;
 
   /* Text */
-  --color-text-primary: #0f1b2d;
-  --color-text-secondary: #5b6b82;
-  --color-text-muted: #97a4b8;
-  --color-text-dark: #364153;
-  --color-text-darkest: #0f1b2d;
+  --color-text-primary: #1a1414;
+  --color-text-secondary: #6b6265;
+  --color-text-muted: #9c9296;
+  --color-text-dark: #3d3436;
+  --color-text-darkest: #1a1414;
 
-  /* Primary accent — blue */
-  --color-accent: #2d6bff;
-  --color-accent-dark: #1e54d6;
-  --color-accent-light: #eaf1ff;
-  --color-accent-muted: #f4f8ff;
+  /* Primary accent — red */
+  --color-accent: #e11d48;
+  --color-accent-dark: #b0123a;
+  --color-accent-light: #fde7ec;
+  --color-accent-muted: #fff5f7;
   --color-accent-foreground: #ffffff;
 
   /* Success — green */
-  --color-success: #13b981;
-  --color-success-dark: #047857;
-  --color-success-light: #e5f8f1;
-  --color-success-lightest: #ecfdf5;
-  --color-success-foreground: #047857;
+  --color-success: #15a36b;
+  --color-success-dark: #0f7a50;
+  --color-success-light: #e7f8f0;
+  --color-success-lightest: #f1fbf6;
+  --color-success-foreground: #0f7a50;
 
   /* Warning — amber */
-  --color-warning: #f59e0b;
-  --color-warning-dark: #b45309;
-  --color-warning-light: #fef4e3;
-  --color-warning-lightest: #fffbeb;
-  --color-warning-foreground: #b45309;
+  --color-warning: #f5a623;
+  --color-warning-dark: #b4720c;
+  --color-warning-light: #fef3e1;
+  --color-warning-lightest: #fffaf0;
+  --color-warning-foreground: #b4720c;
 
-  /* Error — red */
-  --color-error: #ef4d5a;
-  --color-error-dark: #c2303c;
-  --color-error-light: #fdebed;
-  --color-error-foreground: #c2303c;
+  /* Error — a more orange-leaning red so it stays distinct from the brand accent */
+  --color-error: #dc2626;
+  --color-error-dark: #9a1c1c;
+  --color-error-light: #fde9e9;
+  --color-error-foreground: #9a1c1c;
 
-  /* Violet */
-  --color-violet: #7c5cfc;
-  --color-violet-dark: #6d45e0;
-  --color-violet-light: #f0ecfe;
-  --color-violet-foreground: #6d45e0;
+  /* Violet — kept as a 4th categorical color, shifted to wine so it stays in the red family */
+  --color-violet: #9d174d;
+  --color-violet-dark: #78123b;
+  --color-violet-light: #fce8ef;
+  --color-violet-foreground: #78123b;
 
   /* Dark overlay */
-  --color-overlay: #0f1b2d;
+  --color-overlay: #1a1414;
 
   /* Border radius */
   --radius-sm: 9px;
@@ -67,6 +67,21 @@
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-full: 9999px;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 180ms ease-out;
 }
 
 @layer base {

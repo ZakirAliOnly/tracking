@@ -1,6 +1,6 @@
 # UI Tokens
 
-Design tokens for TrackFleet — Vehicle Tracking Management. All colors, typography, spacing, and component values are extracted from the delivered prototype (light theme, blue accent). Use these exact values throughout the codebase — never hardcode colors or use raw Tailwind color classes in components.
+Design tokens for Real Tracker — Vehicle Tracking Management. All colors, typography, spacing, and component values are extracted from the delivered prototype (light theme, red accent, white/minimal). Use these exact values throughout the codebase — never hardcode colors or use raw Tailwind color classes in components.
 
 ---
 
@@ -21,10 +21,10 @@ className="bg-surface text-text-primary border-border"
 style={{ color: 'var(--color-text-primary)' }}
 
 // Never — hardcoded hex values
-className="bg-[#F5F7FB] text-[#0F1B2D]"
+className="bg-[#FAFAFA] text-[#1A1414]"
 
 // Never — raw Tailwind color classes
-className="bg-blue-500 text-gray-600"
+className="bg-red-500 text-gray-600"
 ```
 
 ---
@@ -41,59 +41,60 @@ className="bg-blue-500 text-gray-600"
   --font-mono: "JetBrains Mono", monospace;
 
   /* Page and surface backgrounds */
-  --color-background: #f5f7fb;
+  --color-background: #fafafa;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f4f8ff;
-  --color-surface-tertiary: #f0f3f8;
-  --color-surface-muted: #f5f7fb;
+  --color-surface-secondary: #fff4f5;
+  --color-surface-tertiary: #f5f5f5;
+  --color-surface-muted: #fafafa;
 
   /* Borders */
-  --color-border: #e8ecf3;
-  --color-border-light: #f0f3f8;
-  --color-border-muted: #dfe1e7;
+  --color-border: #ece7e7;
+  --color-border-light: #f3f0f0;
+  --color-border-muted: #e2dede;
 
   /* Text */
-  --color-text-primary: #0f1b2d;
-  --color-text-secondary: #5b6b82;
-  --color-text-muted: #97a4b8;
-  --color-text-dark: #364153;
-  --color-text-darkest: #0f1b2d;
+  --color-text-primary: #1a1414;
+  --color-text-secondary: #6b6265;
+  --color-text-muted: #9c9296;
+  --color-text-dark: #3d3436;
+  --color-text-darkest: #1a1414;
 
-  /* Primary accent — blue */
-  --color-accent: #2d6bff;
-  --color-accent-dark: #1e54d6;
-  --color-accent-light: #eaf1ff;
-  --color-accent-muted: #f4f8ff;
+  /* Primary accent — red */
+  --color-accent: #e11d48;
+  --color-accent-dark: #b0123a;
+  --color-accent-light: #fde7ec;
+  --color-accent-muted: #fff5f7;
   --color-accent-foreground: #ffffff;
 
   /* Success — green (active, payment received) */
-  --color-success: #13b981;
-  --color-success-dark: #047857;
-  --color-success-light: #e5f8f1;
-  --color-success-lightest: #ecfdf5;
-  --color-success-foreground: #047857;
+  --color-success: #15a36b;
+  --color-success-dark: #0f7a50;
+  --color-success-light: #e7f8f0;
+  --color-success-lightest: #f1fbf6;
+  --color-success-foreground: #0f7a50;
 
   /* Warning — amber (renewal due, low stock) */
-  --color-warning: #f59e0b;
-  --color-warning-dark: #b45309;
-  --color-warning-light: #fef4e3;
-  --color-warning-lightest: #fffbeb;
-  --color-warning-foreground: #b45309;
+  --color-warning: #f5a623;
+  --color-warning-dark: #b4720c;
+  --color-warning-light: #fef3e1;
+  --color-warning-lightest: #fffaf0;
+  --color-warning-foreground: #b4720c;
 
-  /* Error — red (overdue, faulty, failed) */
-  --color-error: #ef4d5a;
-  --color-error-dark: #c2303c;
-  --color-error-light: #fdebed;
-  --color-error-foreground: #c2303c;
+  /* Error — a more orange-leaning red (overdue, faulty, failed) — kept
+     distinct from the brand accent so the two reds aren't confused */
+  --color-error: #dc2626;
+  --color-error-dark: #9a1c1c;
+  --color-error-light: #fde9e9;
+  --color-error-foreground: #9a1c1c;
 
-  /* Violet — secondary categorical (charts, accents) */
-  --color-violet: #7c5cfc;
-  --color-violet-dark: #6d45e0;
-  --color-violet-light: #f0ecfe;
-  --color-violet-foreground: #6d45e0;
+  /* Violet — secondary categorical, shifted to wine so it stays in the red family */
+  --color-violet: #9d174d;
+  --color-violet-dark: #78123b;
+  --color-violet-light: #fce8ef;
+  --color-violet-foreground: #78123b;
 
   /* Dark overlay */
-  --color-overlay: #0f1b2d;
+  --color-overlay: #1a1414;
 
   /* Border radius */
   --radius-sm: 9px;
@@ -128,15 +129,15 @@ Tailwind v4 generates utility classes automatically from every `--color-*` token
 ### Typography
 
 | Element                | Token                           |
-| ---------------------- | ------------------------------- |
-| Headings, primary text | `text-text-primary` (#0F1B2D)   |
-| Secondary text, labels | `text-text-secondary` (#5B6B82) |
-| Placeholder, muted     | `text-text-muted` (#97A4B8)     |
-| Dark labels            | `text-text-dark` (#364153)      |
+| ----------------------- | -------------------------------- |
+| Headings, primary text | `text-text-primary` (#1A1414)   |
+| Secondary text, labels | `text-text-secondary` (#6B6265) |
+| Placeholder, muted     | `text-text-muted` (#9C9296)     |
+| Dark labels            | `text-text-dark` (#3D3436)      |
 
-### Accent (Primary Blue)
+### Accent (Primary Red)
 
-Used for: primary buttons, active nav items, focus rings, key figures, revenue chart line, account chips
+Used for: primary buttons, active nav items, focus rings, key figures, revenue chart line, account chips, logo mark
 
 | Element                | Token                    |
 | ---------------------- | ------------------------ |
@@ -227,7 +228,7 @@ background: bg-surface
 border: 1px solid var(--color-border)
 border-radius: 20px (--radius-xl)
 padding: 20px (p-5) — or 24px (p-6) for large cards
-box-shadow: 0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)
+box-shadow: 0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)
 ```
 
 ### Buttons
@@ -235,13 +236,13 @@ box-shadow: 0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)
 **Primary:**
 
 ```
-background: bg-accent (#2D6BFF)
+background: bg-accent (#E11D48)
 text: text-accent-foreground
 border-radius: rounded-[9px] (--radius-sm)
 padding: px-4 py-2.5
 font-weight: font-semibold
 hover: bg-accent-dark
-box-shadow: 0 8px 18px -6px rgba(45,107,255,0.6)
+box-shadow: 0 8px 18px -6px rgba(225,29,72,0.6)
 ```
 
 **Secondary / Ghost:**
@@ -252,7 +253,7 @@ border: border border-border
 text: text-text-secondary
 border-radius: rounded-[9px]
 padding: px-4 py-2.5
-box-shadow: 0 1px 2px rgba(15,27,45,0.05)
+box-shadow: 0 1px 2px rgba(26,20,20,0.05)
 hover: text-text-primary, border-text-muted
 ```
 
@@ -276,7 +277,7 @@ border: border border-border
 border-radius: rounded-[9px]
 padding: px-3.5 py-2.5
 icon: text-text-muted, 16px
-box-shadow: 0 1px 2px rgba(15,27,45,0.05)
+box-shadow: 0 1px 2px rgba(26,20,20,0.05)
 ```
 
 ### Segmented Control (filters)
@@ -284,7 +285,7 @@ box-shadow: 0 1px 2px rgba(15,27,45,0.05)
 ```
 container: bg-surface, border border-border, rounded-[9px], p-1
 inactive button: text-text-secondary, font-medium
-active button: bg-text-primary (#0F1B2D), text-white, font-semibold, rounded-[7px]
+active button: bg-text-primary (#1A1414), text-white, font-semibold, rounded-[7px]
 padding: px-3.5 py-1.5
 ```
 
@@ -313,10 +314,10 @@ font-weight: 600
 
 ```
 icon chip: 38x38px, rounded-[11px], tinted bg + matching text
-  - blue:   bg-accent-light / text-accent-dark
+  - red:    bg-accent-light / text-accent-dark
   - green:  bg-success-light / text-success-dark
   - amber:  bg-warning-light / text-warning-dark
-  - violet: bg-violet-light / text-violet-dark
+  - wine:   bg-violet-light / text-violet-dark
 stat number: Sora 25px / 700
 label: 12.5px / text-text-secondary
 sparkline: 38px tall, stroke matches chip color, gradient fill at 15% opacity
@@ -334,14 +335,14 @@ value label: JetBrains Mono, 12.5px, font-semibold
 
 ```
 size: 36x36px, rounded-[9px]
-background: linear-gradient(135deg, <color>, <color-dark>) per row
+background: linear-gradient(135deg, <color>, <color-dark>) per row — six-tone red/wine/charcoal set, see AVATAR_GRADIENTS in each *View.tsx
 text: white, Sora, 12px, 700 (initials)
 ```
 
 ### Activity Feed Dots
 
 | Activity Type    | Background         | Icon color          |
-| ---------------- | ------------------ | ------------------- |
+| ----------------- | ------------------ | -------------------- |
 | Renewal received | `bg-success-light` | `text-success-dark` |
 | New installation | `bg-accent-light`  | `text-accent-dark`  |
 | Renewal due soon | `bg-warning-light` | `text-warning-dark` |
@@ -351,19 +352,19 @@ Dot container: 34x34px, rounded-[10px], icon 16px.
 
 ### Dashboard Chart Colors
 
-| Chart                          | Color                                                          |
-| ------------------------------ | -------------------------------------------------------------- |
-| Revenue / installs (line+area) | `#2D6BFF` stroke, 3px width, gradient fill rgba(45,107,255,0.2)|
-| Renewals (line)                | `#13B981` stroke, 2.5px width                                  |
-| Revenue bars                   | `#2D6BFF`                                                      |
-| Expenses bars                  | `#F59E0B`                                                      |
-| Chart grid lines               | `1px solid #E8ECF3`                                            |
-| Chart axis labels              | `#97A4B8`, 12px                                                |
+| Chart                          | Color                                                            |
+| ------------------------------- | ----------------------------------------------------------------- |
+| Revenue / installs (line+area) | `#E11D48` stroke, 3px width, gradient fill rgba(225,29,72,0.2)  |
+| Renewals (line)                | `#15A36B` stroke, 2.5px width                                    |
+| Revenue bars                   | `#E11D48`                                                        |
+| Expenses bars                  | `#F5A623`                                                        |
+| Chart grid lines               | `1px solid #ECE7E7`                                              |
+| Chart axis labels              | `#9C9296`, 12px                                                  |
 
 ### Logo
 
 ```
-background: linear-gradient(135deg, #2D6BFF 0%, #5A8BFF 100%)
+background: linear-gradient(135deg, #E11D48 0%, #FB7185 100%)
 border-radius: 10px
 size: 36x36px
 icon: white pin/location glyph, 19px
@@ -375,9 +376,11 @@ icon: white pin/location glyph, 19px
 
 - Never use hex values directly in components — always use CSS variables via Tailwind tokens
 - Display font is Sora, body is Inter, figures are JetBrains Mono — always import via next/font/google, never use a fallback system font
-- Never use raw Tailwind color classes like `bg-blue-500` or `text-gray-600` — use project tokens only
-- `--color-accent` (#2D6BFF) is the only blue — never use Tailwind's built-in blue scale
+- Never use raw Tailwind color classes like `bg-red-500` or `text-gray-600` — use project tokens only
+- `--color-accent` (#E11D48) is the only brand red — never use Tailwind's built-in red/rose scale
+- `--color-error` (#DC2626) is a deliberately different, more orange-leaning red from the accent so danger/overdue states read distinctly from brand actions — do not collapse the two
 - Money, IMEI, GSM, and registration numbers always render in `--font-mono` for alignment
 - Status badge colors always come from the Status / Device / Category tables — never hardcoded per component
 - Active nav items use `bg-accent-light` + `text-accent-dark` with a 3px `--color-accent` left bar — never approximate
-- All borders default to `--color-border` (#E8ECF3) — never use `border-gray-*`
+- All borders default to `--color-border` (#ECE7E7) — never use `border-gray-*`
+- The palette is intentionally white + red + neutral gray, with green/amber kept only for financial status meaning (received/due) and wine (`--color-violet`) as the sole extra categorical color — do not reintroduce blue or purple/sky accents

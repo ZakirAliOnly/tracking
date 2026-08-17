@@ -1,21 +1,28 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ChevronDown, HardDrive, Plus } from "lucide-react";
+import { ChevronDown, HardDrive, Plus, Upload } from "lucide-react";
 import {
   NewInstallationModal,
   type CustomerOption,
-  type AccountOption,
-  type StockDeviceOption,
 } from "@/components/installations/NewInstallationModal";
+import { ImportCsvModal } from "@/components/installations/ImportCsvModal";
+import type { AccountOption } from "@/lib/accounts";
+import type { InstallableDevice } from "@/lib/device-options";
 
-export type { StockDeviceOption };
 
 export type InstallationRow = {
   id: string;
   customerName: string;
   vehicleDescription: string;
   registrationNo: string;
+  simNo: string | null;
+  received: boolean;
+  amount: string;
+  simPayment: string;
+  discount: string;
+  amountPaid: string;
+  fittedDevices: { name: string; quantity: number; unitPrice: string }[];
   imeiNo: string | null;
   gsmNo: string | null;
   gsmNoAlt: string | null;
@@ -36,18 +43,18 @@ type Props = {
   installations: InstallationRow[];
   customers: CustomerOption[];
   accounts: AccountOption[];
-  deviceOptions: StockDeviceOption[];
+  devices: InstallableDevice[];
 };
 
 /* ─── Helpers ──────────────────────────────────────────── */
 
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #2D6BFF 0%, #5A8BFF 100%)",
-  "linear-gradient(135deg, #13B981 0%, #34D399 100%)",
-  "linear-gradient(135deg, #7C5CFC 0%, #A78BFA 100%)",
-  "linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)",
-  "linear-gradient(135deg, #EF4D5A 0%, #F87171 100%)",
-  "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)",
+  "linear-gradient(135deg, #E11D48 0%, #FB7185 100%)",
+  "linear-gradient(135deg, #1A1414 0%, #4B4448 100%)",
+  "linear-gradient(135deg, #9D174D 0%, #DB2777 100%)",
+  "linear-gradient(135deg, #B0123A 0%, #F43F5E 100%)",
+  "linear-gradient(135deg, #78123B 0%, #B0123A 100%)",
+  "linear-gradient(135deg, #DC2626 0%, #F87171 100%)",
 ];
 
 function getGradient(name: string): string {
@@ -75,15 +82,44 @@ function fmtDateFull(iso: string): string {
   return `${String(d.getDate()).padStart(2, "0")} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function truncateImei(imei: string): string {
-  if (imei.length <= 8) return imei;
-  return `${imei.slice(0, 4)}..${imei.slice(-4)}`;
-}
-
 function fmtRupees(amount: string | null): string {
   if (!amount) return "—";
   const n = Math.round(parseFloat(amount));
   return `Rs ${n.toLocaleString("en-PK")}`;
+}
+
+/**
+ * What is still owed: the generated total, less the discount and what was paid.
+ * CSV-imported rows carry `received` without an amount paid, so a settled row is
+ * never shown as still owing.
+ */
+function remaining(inst: InstallationRow): string {
+  if (inst.received) return "0";
+  const owed =
+    parseFloat(inst.totalAmount ?? "0") - parseFloat(inst.discount) - parseFloat(inst.amountPaid);
+  return String(Math.max(owed, 0));
+}
+
+function PaidPill({ received, amountPaid }: { received: boolean; amountPaid: string }) {
+  if (received)
+    return (
+      <span className="inline-flex items-center rounded-full bg-success-light px-2.5 py-1 text-xs font-semibold text-success-foreground">
+        Received
+      </span>
+    );
+
+  if (parseFloat(amountPaid) > 0)
+    return (
+      <span className="inline-flex items-center rounded-full bg-accent-light px-2.5 py-1 text-xs font-semibold text-accent-dark">
+        Part paid
+      </span>
+    );
+
+  return (
+    <span className="inline-flex items-center rounded-full bg-warning-light px-2.5 py-1 text-xs font-semibold text-warning-foreground">
+      Pending
+    </span>
+  );
 }
 
 type StatusKey = "active" | "renewal_due" | "suspended";
@@ -115,9 +151,10 @@ type Filter = "all" | "active" | "suspended";
 
 /* ─── Main view ────────────────────────────────────────── */
 
-export function InstallationsView({ installations, customers, accounts, deviceOptions }: Props) {
+export function InstallationsView({ installations, customers, accounts, devices }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = installations.filter((i) => {
@@ -133,8 +170,10 @@ export function InstallationsView({ installations, customers, accounts, deviceOp
         onClose={() => setModalOpen(false)}
         customers={customers}
         accounts={accounts}
-        deviceOptions={deviceOptions}
+        devices={devices}
       />
+
+      <ImportCsvModal open={importOpen} onClose={() => setImportOpen(false)} />
 
       {/* Toolbar */}
       <div className="mb-5 flex items-center justify-between">
@@ -154,23 +193,33 @@ export function InstallationsView({ installations, customers, accounts, deviceOp
           ))}
         </div>
 
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-          style={{
-            boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)",
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          New installation
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setImportOpen(true)}
+            className="flex h-9 items-center gap-2 rounded-[9px] border border-border bg-surface px-4 text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </button>
+
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+            style={{
+              boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            New installation
+          </button>
+        </div>
       </div>
 
       {/* Table card */}
       <div
         className="rounded-[20px] border border-border bg-surface"
         style={{
-          boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)",
+          boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)",
         }}
       >
         {filtered.length === 0 ? (
@@ -182,10 +231,10 @@ export function InstallationsView({ installations, customers, accounts, deviceOp
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Client</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Vehicle</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Reg No</th>
-                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">IMEI</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Sim No</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Install Date</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Total</th>
-                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Account</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Received</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
                 <th className="px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wide text-text-muted" />
               </tr>
@@ -229,7 +278,7 @@ export function InstallationsView({ installations, customers, accounts, deviceOp
                     {/* IMEI */}
                     <td className="px-5 py-4">
                       <span className="font-mono text-[13px] text-text-secondary">
-                        {inst.imeiNo ? truncateImei(inst.imeiNo) : "—"}
+                        {inst.simNo ?? "—"}
                       </span>
                     </td>
 
@@ -247,15 +296,9 @@ export function InstallationsView({ installations, customers, accounts, deviceOp
                       </span>
                     </td>
 
-                    {/* Account */}
+                    {/* Received */}
                     <td className="px-5 py-4">
-                      {inst.accountName ? (
-                        <span className="inline-flex items-center rounded-full bg-accent-light px-2.5 py-1 text-xs font-semibold text-accent">
-                          {inst.accountName}
-                        </span>
-                      ) : (
-                        <span className="text-[13px] text-text-muted">—</span>
-                      )}
+                      <PaidPill received={inst.received} amountPaid={inst.amountPaid} />
                     </td>
 
                     {/* Status */}
@@ -297,7 +340,7 @@ function DetailPanel({ inst }: { inst: InstallationRow }) {
   return (
     <div
       className="rounded-[14px] border border-border bg-surface p-5"
-      style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 4px 12px -4px rgba(15,27,45,0.10)" }}
+      style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 12px -4px rgba(26,20,20,0.10)" }}
     >
       {/* Panel header */}
       <div className="mb-4 flex items-start justify-between">
@@ -322,8 +365,34 @@ function DetailPanel({ inst }: { inst: InstallationRow }) {
         <DetailField label="Colour" value={inst.colour} />
         <DetailField label="Cut Off" value={inst.cutOff} />
         <DetailField label="Next Renewal" value={fmtDateFull(inst.nextRenewalDate)} />
-        <DetailField label="Account" value={inst.accountName} />
+        <DetailField label="Payment Method" value={inst.accountName} />
+        <DetailField label="Discount" value={fmtRupees(inst.discount)} />
+        <DetailField label="Paid" value={fmtRupees(inst.amountPaid)} />
+        <DetailField label="Remaining" value={fmtRupees(remaining(inst))} />
       </div>
+
+      {inst.fittedDevices.length > 0 && (
+        <div className="mt-4 border-t border-border pt-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+            Devices fitted
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {inst.fittedDevices.map((d, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <span className="text-[13px] text-text-primary">
+                  {d.name}
+                  {d.quantity > 1 && (
+                    <span className="ml-1.5 text-text-secondary">× {d.quantity}</span>
+                  )}
+                </span>
+                <span className="font-mono text-[13px] text-text-secondary">
+                  {fmtRupees(String(parseFloat(d.unitPrice) * d.quantity))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {inst.gsmNoAlt && (
         <div className="mt-4 border-t border-border pt-4">
@@ -382,7 +451,7 @@ function EmptyState({ filter, onAdd }: { filter: Filter; onAdd: () => void }) {
           onClick={onAdd}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
           style={{
-            boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)",
+            boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
           }}
         >
           <Plus className="h-4 w-4" />

@@ -50,7 +50,7 @@ export function Topbar() {
   const pathname = usePathname();
   const segment = `/${pathname.split("/")[1]}`;
   const meta: PageMeta = PAGE_META[segment] ?? {
-    title: "TrackFleet",
+    title: "Real Tracker",
     subtitle: "",
   };
 

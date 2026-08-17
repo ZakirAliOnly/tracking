@@ -31,7 +31,10 @@ export async function fetchSupplierLedger(supplierId: string): Promise<LedgerDat
     prisma.supplier.findFirst({ where: { id: supplierId, orgId } }),
     prisma.purchaseInvoice.findMany({
       where: { supplierId, orgId },
-      include: { device: { select: { fmModule: true } } },
+      include: {
+        device: { select: { fmModule: true } },
+        account: { select: { name: true } },
+      },
       orderBy: { invoiceDate: "asc" },
     }),
     prisma.supplierPayment.findMany({
@@ -71,6 +74,16 @@ export async function fetchSupplierLedger(supplierId: string): Promise<LedgerDat
       debit: Number(inv.totalAmount),
       credit: 0,
     });
+
+    if (Number(inv.amountPaid) > 0) {
+      rawEntries.push({
+        date: inv.invoiceDate,
+        type: "payment",
+        description: `Paid at purchase${inv.account ? ` via ${inv.account.name}` : ""}`,
+        debit: 0,
+        credit: Number(inv.amountPaid),
+      });
+    }
   }
 
   for (const pay of rawPayments) {

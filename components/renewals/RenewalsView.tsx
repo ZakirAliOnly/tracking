@@ -3,11 +3,11 @@
 import { useCallback, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import {
-  RecordRenewalDrawer,
+  RecordRenewalModal,
   type PreFill,
   type InstallationOption,
   type AccountOption,
-} from "@/components/renewals/RecordRenewalDrawer";
+} from "@/components/renewals/RecordRenewalModal";
 
 export type RenewalStatus = "received" | "due_soon" | "overdue" | "upcoming";
 
@@ -40,12 +40,12 @@ type Props = {
 /* ─── Helpers ──────────────────────────────────────────── */
 
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #2D6BFF 0%, #5A8BFF 100%)",
-  "linear-gradient(135deg, #13B981 0%, #34D399 100%)",
-  "linear-gradient(135deg, #7C5CFC 0%, #A78BFA 100%)",
-  "linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)",
-  "linear-gradient(135deg, #EF4D5A 0%, #F87171 100%)",
-  "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)",
+  "linear-gradient(135deg, #E11D48 0%, #FB7185 100%)",
+  "linear-gradient(135deg, #1A1414 0%, #4B4448 100%)",
+  "linear-gradient(135deg, #9D174D 0%, #DB2777 100%)",
+  "linear-gradient(135deg, #B0123A 0%, #F43F5E 100%)",
+  "linear-gradient(135deg, #78123B 0%, #B0123A 100%)",
+  "linear-gradient(135deg, #DC2626 0%, #F87171 100%)",
 ];
 function getGradient(name: string) {
   const h = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -144,7 +144,7 @@ export function RenewalsView({ rows, accounts }: Props) {
 
   return (
     <>
-      <RecordRenewalDrawer
+      <RecordRenewalModal
         open={drawerOpen}
         onClose={handleCloseDrawer}
         preFill={drawerPreFill}
@@ -179,7 +179,7 @@ export function RenewalsView({ rows, accounts }: Props) {
         <button
           onClick={() => { setDrawerPreFill(null); setDrawerOpen(true); }}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-          style={{ boxShadow: "0 1px 2px rgba(45,107,255,0.20), 0 4px 12px -4px rgba(45,107,255,0.40)" }}
+          style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
         >
           <Plus className="h-4 w-4" />
           Record renewal
@@ -189,7 +189,7 @@ export function RenewalsView({ rows, accounts }: Props) {
       {/* Table card */}
       <div
         className="rounded-[20px] border border-border bg-surface"
-        style={{ boxShadow: "0 1px 2px rgba(15,27,45,0.05), 0 6px 22px -8px rgba(15,27,45,0.14)" }}
+        style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
         {sorted.length === 0 ? (
           <EmptyState filter={filter} />

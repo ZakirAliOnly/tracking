@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RenewalsView, type RenewalRow, type RenewalStatus } from "@/components/renewals/RenewalsView";
 import { RENEWAL_REMINDER_DAYS } from "@/lib/utils";
-import type { AccountOption } from "@/components/renewals/RecordRenewalDrawer";
+import type { AccountOption } from "@/components/renewals/RecordRenewalModal";
 
 export default async function RenewalsPage() {
   const session = await auth();
