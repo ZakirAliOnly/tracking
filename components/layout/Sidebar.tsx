@@ -13,6 +13,7 @@ import {
   CreditCard,
   Receipt,
   BarChart2,
+  TrendingUp,
   MapPin,
   LogOut,
 } from "lucide-react";
@@ -36,6 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/installations", label: "Installations", icon: Wrench },
       { href: "/renewals", label: "Renewals", icon: RefreshCw },
+      { href: "/sales-report", label: "Sales Report", icon: TrendingUp },
     ],
   },
   {

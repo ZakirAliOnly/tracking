@@ -80,6 +80,7 @@ if (!open) return null;          // after every hook — never before
 | RenewalsView | components/renewals/RenewalsView.tsx | RenewalRow, RenewalStatus | Three filter tabs — Pending (default) / Received / All — plus a due-date range row beneath them, all URL-driven and server-paginated; red attention badge on Pending; row data comes from `lib/renewals-query.ts`'s raw SQL, not a plain `findMany` |
 | InstallationsView | components/installations/InstallationsView.tsx | InstallationRow | Expandable detail panel; toolbar opens New installation + Import CSV modals; filter tabs URL-driven, server-paginated |
 | ExpensesView | components/expenses/ExpensesView.tsx | ExpenseRow | Date-range filter tabs (month/quarter/year/all, URL-driven, server-paginated); stat tiles from `count()`/`aggregate()`, not the loaded page |
+| SalesReportView | components/sales/SalesReportView.tsx | SalesRow | Sales Report module — 4 KPI cards (Others leads, in success green) over a Client / Reg No / Install Date / Sim / Device / Other table; install-date range + pagination URL-driven, KPIs from `aggregate()` across the whole range rather than the page. "Other" is computed (`total − sim − device`), **not** the stored `other_amount` |
 
 ---
 
