@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { normalizeMobile, parseDate, parseMoney } from "@/lib/csv-import";
+import { INSTALLATION_COLUMNS, normalizeMobile, parseDate, parseMoney } from "@/lib/csv-import";
 import type { DiscountMode } from "@/lib/installation-money";
 
 export const MAX_IMPORT_ROWS = 1000;
@@ -49,42 +49,153 @@ function requiredDate(label: string) {
     });
 }
 
-const TRUTHY = new Set(["yes", "y", "true", "1", "received", "paid"]);
-const FALSY = new Set(["no", "n", "false", "0", "pending", "unpaid", ""]);
-
-const receivedField = z
+/**
+ * Digits only, whatever length the sheet has them at — a historical sheet mixes
+ * landlines, numbers missing a leading 0, and full mobiles, and none of that is
+ * worth rejecting a row over.
+ */
+const numberField = z
   .string()
   .default("")
-  .transform((v, ctx) => {
-    const normalized = v.trim().toLowerCase();
-    if (TRUTHY.has(normalized)) return true;
-    if (FALSY.has(normalized)) return false;
-    ctx.addIssue({ code: "custom", message: "received must be Yes or No" });
-    return z.NEVER;
+  .transform((v) => {
+    const digits = normalizeMobile(v);
+    return digits === "" ? null : digits;
   });
 
-const simNoField = z
+const optionalText = z
+  .string()
+  .default("")
+  .transform((v) => {
+    const trimmed = v.trim();
+    return trimmed === "" ? null : trimmed;
+  });
+
+/**
+ * Excel rewrites a 15-digit IMEI as `8.60123E+14` the moment the cell is typed
+ * as a number, which throws away the last digits for good. Importing that would
+ * quietly create a stock device under a wrong identity, so it is refused with
+ * the fix rather than accepted.
+ */
+const imeiField = z
   .string()
   .default("")
   .transform((v, ctx) => {
-    const digits = normalizeMobile(v);
-    if (digits === "") return null;
-    if (digits.length !== 11) {
-      ctx.addIssue({ code: "custom", message: "Sim Number must be exactly 11 digits" });
+    const trimmed = v.trim();
+    if (trimmed === "") return null;
+
+    if (/^\d+(\.\d+)?e\+?\d+$/i.test(trimmed)) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "IMEI Number has been shortened by Excel (8.60123E+14). Format that column as Text and paste the digits again",
+      });
       return z.NEVER;
     }
-    return digits;
+
+    return trimmed;
   });
 
 export const installationImportRowSchema = z.object({
   customerName: requiredText("Client Name"),
   registrationNo: requiredText("Registration No"),
   installationDate: requiredDate("Installetion Date"),
-  received: receivedField,
+
+  contact1: optionalText,
+  mobile1: numberField,
+  contact2: optionalText,
+  mobile2: numberField,
+  contact3: optionalText,
+  mobile3: numberField,
+  contact4: optionalText,
+  mobile4: numberField,
+
+  remarks: optionalText,
+  address: optionalText,
+  password: optionalText,
+
+  carDescription: optionalText,
+  make: optionalText,
+  model: optionalText,
+  engineNo: optionalText,
+  chassisNo: optionalText,
+  cutOff: optionalText,
+  colour: optionalText,
+
+  simNo: numberField,
+  gsmNoAlt: numberField,
+  imeiNo: imeiField,
+  fmModule: optionalText,
+
   amount: money("Amount"),
   simPayment: money("Sim"),
-  simNo: simNoField,
+  devicePayment: money("Amount Device"),
+  amountPaid: money("Total Paid"),
+  otherAmount: money("Others"),
 });
+
+/** The named contacts on a row, in sheet order, with blanks dropped. */
+export function toImportContacts(
+  row: InstallationImportRow
+): { name: string; mobile: string; position: number }[] {
+  return [
+    { name: row.contact1, mobile: row.mobile1 },
+    { name: row.contact2, mobile: row.mobile2 },
+    { name: row.contact3, mobile: row.mobile3 },
+    { name: row.contact4, mobile: row.mobile4 },
+  ]
+    .map((c, i) => ({ ...c, position: i + 1 }))
+    // A contact needs a name to be worth keeping; a lone mobile has nobody to belong to
+    .filter((c): c is { name: string; mobile: string | null; position: number } => c.name !== null)
+    .map((c) => ({ name: c.name, mobile: c.mobile ?? "", position: c.position }));
+}
+
+/** One thing wrong with one cell, named so it can be found in the spreadsheet. */
+export type RowIssue = {
+  line: number;
+  /** The column's heading as it appears in the sheet, or null for whole-row problems. */
+  column: string | null;
+  message: string;
+  /** What the cell actually held, so a mangled value is visible without reopening the file. */
+  value: string;
+};
+
+const HEADER_BY_KEY = new Map(INSTALLATION_COLUMNS.map((c) => [c.key, c.header]));
+
+/**
+ * Every problem on a row, not just the first — a row with a bad date and a bad
+ * IMEI would otherwise be fixed, re-uploaded, and rejected all over again.
+ */
+export function describeRowIssues(raw: Record<string, string>, line: number): RowIssue[] {
+  const parsed = installationImportRowSchema.safeParse(raw);
+  if (parsed.success) return [];
+
+  const seen = new Set<string>();
+  const issues: RowIssue[] = [];
+
+  for (const issue of parsed.error.issues) {
+    const key = String(issue.path[0] ?? "");
+    // Zod can report the same cell twice; the reader only needs it once
+    const dedupe = `${key}|${issue.message}`;
+    if (seen.has(dedupe)) continue;
+    seen.add(dedupe);
+
+    const column = HEADER_BY_KEY.get(key) ?? null;
+
+    issues.push({
+      line,
+      column,
+      // The column is shown as its own label, so a message that opens with the
+      // same words would read "Amount: Amount must be a number"
+      message:
+        column && issue.message.startsWith(column)
+          ? issue.message.slice(column.length).trimStart()
+          : issue.message,
+      value: raw[key] ?? "",
+    });
+  }
+
+  return issues;
+}
 
 export const overwriteLinesSchema = z.array(z.number().int().positive()).max(MAX_IMPORT_ROWS);
 
@@ -147,6 +258,62 @@ export type InstallationFormInput = z.infer<typeof installationFormSchema>;
 export const customerInstallationSchema = installationFormSchema.omit({ customerName: true });
 
 export type CustomerInstallationInput = z.infer<typeof customerInstallationSchema>;
+
+const strictMobile = optionalTextInput.refine(
+  (v) => v === null || /^\d{11}$/.test(v),
+  "must be exactly 11 digits"
+);
+
+/**
+ * The standalone New installation form's own fields, on top of the shared
+ * base — customer contact detail, vehicle detail, and plain reference text
+ * for the fitted device. Kept separate from `installationFormSchema` so the
+ * Add customer page's inline installation blocks (which collect the
+ * customer's phone/address once, up front) are not affected.
+ */
+export const newInstallationFormSchema = installationFormSchema.extend({
+  phone: strictMobile,
+  address: optionalTextInput,
+
+  contact1Name: optionalTextInput,
+  contact1Mobile: strictMobile,
+  contact2Name: optionalTextInput,
+  contact2Mobile: strictMobile,
+  contact3Name: optionalTextInput,
+  contact3Mobile: strictMobile,
+  contact4Name: optionalTextInput,
+  contact4Mobile: strictMobile,
+
+  carDescription: optionalTextInput,
+  make: optionalTextInput,
+  model: optionalTextInput,
+  engineNo: optionalTextInput,
+  chassisNo: optionalTextInput,
+  colour: optionalTextInput,
+
+  devicePayment: moneyInput,
+  gsmNo: strictMobile,
+  fmModule: optionalTextInput,
+  cutOff: optionalTextInput,
+  imeiNo: optionalTextInput,
+});
+
+export type NewInstallationFormInput = z.infer<typeof newInstallationFormSchema>;
+
+/** The named contacts on the form, in slot order, with untouched slots dropped. */
+export function toFormContacts(
+  input: NewInstallationFormInput
+): { name: string; mobile: string; position: number }[] {
+  return [
+    { name: input.contact1Name, mobile: input.contact1Mobile },
+    { name: input.contact2Name, mobile: input.contact2Mobile },
+    { name: input.contact3Name, mobile: input.contact3Mobile },
+    { name: input.contact4Name, mobile: input.contact4Mobile },
+  ]
+    .map((c, i) => ({ ...c, position: i + 1 }))
+    .filter((c): c is { name: string; mobile: string | null; position: number } => c.name !== null)
+    .map((c) => ({ name: c.name, mobile: c.mobile ?? "", position: c.position }));
+}
 
 /** Pairs the parallel deviceId / quantity fields a form posts into lines. */
 export function toDeviceLines(

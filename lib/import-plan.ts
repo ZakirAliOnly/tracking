@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { installationImportRowSchema, type InstallationImportRow } from "@/lib/validations/import";
+import {
+  describeRowIssues,
+  installationImportRowSchema,
+  type InstallationImportRow,
+} from "@/lib/validations/import";
 
 export type FieldDiff = { label: string; existing: string; incoming: string };
 
@@ -55,7 +59,11 @@ export async function buildImportPlan(
         customerName: raw.customerName ?? "",
         registrationNo: raw.registrationNo ?? "",
         status: "invalid",
-        message: parsed.error.issues[0]?.message ?? "Row could not be read",
+        // Every broken cell, named, so the review says what to fix rather than
+        // just that something is wrong
+        message: describeRowIssues(raw, lineOf(index))
+          .map((i) => (i.column ? `${i.column}: ${i.message}` : i.message))
+          .join(" · "),
         diffs: [],
       });
       return;
@@ -102,7 +110,23 @@ export async function buildImportPlan(
   const vehicles = regs.length
     ? await prisma.vehicle.findMany({
         where: { orgId, registrationNo: { in: regs, mode: "insensitive" } },
-        include: { installations: { include: { customer: { select: { name: true } } } } },
+        include: {
+          installations: {
+            include: {
+              customer: { select: { name: true, address: true, remarks: true } },
+              vehicle: {
+                select: {
+                  description: true,
+                  make: true,
+                  model: true,
+                  engineNo: true,
+                  chassisNo: true,
+                  colour: true,
+                },
+              },
+            },
+          },
+        },
       })
     : [];
 
@@ -140,8 +164,19 @@ type ExistingInstallation = {
   received: boolean;
   installationPay: unknown;
   simPayment: unknown;
+  devicePayment: unknown;
+  amountPaid: unknown;
+  otherAmount: unknown;
   simNo: string | null;
-  customer: { name: string };
+  customer: { name: string; address: string | null; remarks: string | null };
+  vehicle: {
+    description: string | null;
+    make: string | null;
+    model: string | null;
+    engineNo: string | null;
+    chassisNo: string | null;
+    colour: string | null;
+  };
 };
 
 function diffAgainstExisting(
@@ -155,14 +190,22 @@ function diffAgainstExisting(
       existing: isoDate(existing.installationDate),
       incoming: incoming.installationDate,
     },
-    {
-      label: "received",
-      existing: existing.received ? "Yes" : "No",
-      incoming: incoming.received ? "Yes" : "No",
-    },
+    { label: "Address", existing: text(existing.customer.address), incoming: text(incoming.address) },
+    { label: "Remarks", existing: text(existing.customer.remarks), incoming: text(incoming.remarks) },
+
+    { label: "Car Description", existing: text(existing.vehicle.description), incoming: text(incoming.carDescription) },
+    { label: "Make", existing: text(existing.vehicle.make), incoming: text(incoming.make) },
+    { label: "Model", existing: text(existing.vehicle.model), incoming: text(incoming.model) },
+    { label: "Engine Number", existing: text(existing.vehicle.engineNo), incoming: text(incoming.engineNo) },
+    { label: "Chassis Number", existing: text(existing.vehicle.chassisNo), incoming: text(incoming.chassisNo) },
+    { label: "Colour", existing: text(existing.vehicle.colour), incoming: text(incoming.colour) },
+
+    { label: "GSM Number", existing: text(existing.simNo), incoming: text(incoming.simNo) },
     { label: "Amount", existing: money(existing.installationPay), incoming: money(incoming.amount) },
     { label: "Sim", existing: money(existing.simPayment), incoming: money(incoming.simPayment) },
-    { label: "Sim Number", existing: text(existing.simNo), incoming: text(incoming.simNo) },
+    { label: "Amount Device", existing: money(existing.devicePayment), incoming: money(incoming.devicePayment) },
+    { label: "Total Paid", existing: money(existing.amountPaid), incoming: money(incoming.amountPaid) },
+    { label: "Others", existing: money(existing.otherAmount), incoming: money(incoming.otherAmount) },
   ];
 
   return pairs.filter((p) => p.existing !== p.incoming);

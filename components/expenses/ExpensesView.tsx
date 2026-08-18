@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { Plus, Receipt, Trash2 } from "lucide-react";
 import { deleteExpense } from "@/actions/expenses";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { AddExpenseModal, type AccountOption } from "@/components/expenses/AddExpenseModal";
+import { Pagination } from "@/components/ui/Pagination";
+import { buildHref } from "@/lib/pagination";
 
 export type ExpenseRow = {
   id: string;
@@ -14,12 +17,7 @@ export type ExpenseRow = {
   spentAt: string; // YYYY-MM-DD
 };
 
-type Props = {
-  expenses: ExpenseRow[];
-  accounts: AccountOption[];
-};
-
-type Filter = "month" | "quarter" | "year" | "all";
+export type Filter = "month" | "quarter" | "year" | "all";
 const FILTER_LABELS: Record<Filter, string> = {
   month: "This month",
   quarter: "Quarter",
@@ -27,34 +25,22 @@ const FILTER_LABELS: Record<Filter, string> = {
   all: "All",
 };
 
+type Props = {
+  expenses: ExpenseRow[];
+  accounts: AccountOption[];
+  filter: Filter;
+  page: number;
+  total: number;
+  totalAmount: number;
+  searchParams: Record<string, string | undefined>;
+};
+
 function fmtRs(v: number) {
   return `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 }
 
-function inRange(spentAt: string, filter: Filter): boolean {
-  if (filter === "all") return true;
-  const now = new Date();
-  const d = new Date(spentAt);
-  if (filter === "month") {
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-  if (filter === "quarter") {
-    const q = (m: number) => Math.floor(m / 3);
-    return d.getFullYear() === now.getFullYear() && q(d.getMonth()) === q(now.getMonth());
-  }
-  return d.getFullYear() === now.getFullYear();
-}
-
-export function ExpensesView({ expenses, accounts }: Props) {
-  const [filter, setFilter] = useState<Filter>("month");
+export function ExpensesView({ expenses, accounts, filter, page, total, totalAmount, searchParams }: Props) {
   const [addOpen, setAddOpen] = useState(false);
-
-  const filtered = useMemo(
-    () => expenses.filter((e) => inRange(e.spentAt, filter)),
-    [expenses, filter]
-  );
-
-  const total = filtered.reduce((s, e) => s + e.amount, 0);
 
   return (
     <>
@@ -68,9 +54,9 @@ export function ExpensesView({ expenses, accounts }: Props) {
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
           {(Object.keys(FILTER_LABELS) as Filter[]).map((f) => (
-            <button
+            <Link
               key={f}
-              onClick={() => setFilter(f)}
+              href={buildHref("/expenses", searchParams, { range: f === "month" ? undefined : f })}
               className={`rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
                 filter === f
                   ? "bg-text-primary font-semibold text-white"
@@ -78,7 +64,7 @@ export function ExpensesView({ expenses, accounts }: Props) {
               }`}
             >
               {FILTER_LABELS[f]}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -102,7 +88,7 @@ export function ExpensesView({ expenses, accounts }: Props) {
             Total — {FILTER_LABELS[filter].toLowerCase()}
           </p>
           <p className="font-display text-[32px] font-bold leading-9 text-text-primary">
-            {fmtRs(total)}
+            {fmtRs(totalAmount)}
           </p>
         </div>
         <div
@@ -111,7 +97,7 @@ export function ExpensesView({ expenses, accounts }: Props) {
         >
           <p className="text-[13px] font-medium text-text-secondary">Expenses recorded</p>
           <p className="font-display text-[32px] font-bold leading-9 text-text-primary">
-            {filtered.length}
+            {total}
           </p>
         </div>
       </div>
@@ -121,7 +107,7 @@ export function ExpensesView({ expenses, accounts }: Props) {
         className="rounded-[20px] border border-border bg-surface"
         style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
-        {filtered.length === 0 ? (
+        {expenses.length === 0 ? (
           <EmptyState filter={filter} />
         ) : (
           <table className="w-full">
@@ -138,11 +124,11 @@ export function ExpensesView({ expenses, accounts }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((expense, i) => (
+              {expenses.map((expense, i) => (
                 <tr
                   key={expense.id}
                   className={`transition-colors hover:bg-surface-muted ${
-                    i < filtered.length - 1 ? "border-b border-border" : ""
+                    i < expenses.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
                   <td className="pl-5 pr-4 py-4">
@@ -190,6 +176,9 @@ export function ExpensesView({ expenses, accounts }: Props) {
               ))}
             </tbody>
           </table>
+        )}
+        {total > 0 && (
+          <Pagination page={page} total={total} label="expense" basePath="/expenses" searchParams={searchParams} />
         )}
       </div>
     </>

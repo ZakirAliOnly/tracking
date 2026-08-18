@@ -10,17 +10,46 @@ import {
 } from "@/components/suppliers/SuppliersView";
 import type { AccountOption } from "@/components/suppliers/PaySupplierModal";
 import type { SupplierOption, DeviceOption } from "@/components/suppliers/NewInvoiceModal";
+import { pageWindow, parsePage } from "@/lib/pagination";
 
-export default async function SuppliersPage() {
+type Tab = "suppliers" | "invoices";
+
+type Props = {
+  searchParams: Promise<{ tab?: string; spage?: string; ipage?: string }>;
+};
+
+export default async function SuppliersPage({ searchParams }: Props) {
   const session = await auth();
   if (!session) redirect("/login");
   const { orgId } = session.user;
+  const sp = await searchParams;
 
-  const [rawSuppliers, rawInvoices, rawPayments, rawAccounts, rawDevices] = await Promise.all([
+  const tab: Tab = sp.tab === "invoices" ? "invoices" : "suppliers";
+  const supplierPage = parsePage(sp.spage);
+  const invoicePage = parsePage(sp.ipage);
+
+  const [
+    rawSuppliers,
+    supplierTotal,
+    rawInvoices,
+    invoiceTotal,
+    // Every supplier's own openingOwed, plus org-wide invoice/payment totals
+    // grouped by supplier — a supplier's payable depends on its whole history,
+    // not just what's on the current page, so these stay full aggregates
+    allOpeningOwed,
+    invoiceTotalsBySupplier,
+    paymentTotalsBySupplier,
+    itemsSuppliedAgg,
+    rawAccounts,
+    rawDevices,
+    supplierOptionsRaw,
+  ] = await Promise.all([
     prisma.supplier.findMany({
       where: { orgId },
       orderBy: { name: "asc" },
+      ...pageWindow(supplierPage),
     }),
+    prisma.supplier.count({ where: { orgId } }),
     prisma.purchaseInvoice.findMany({
       where: { orgId },
       include: {
@@ -28,11 +57,21 @@ export default async function SuppliersPage() {
         device: { select: { fmModule: true } },
       },
       orderBy: { invoiceDate: "desc" },
+      ...pageWindow(invoicePage),
     }),
-    prisma.supplierPayment.findMany({
+    prisma.purchaseInvoice.count({ where: { orgId } }),
+    prisma.supplier.findMany({ where: { orgId }, select: { id: true, openingOwed: true } }),
+    prisma.purchaseInvoice.groupBy({
+      by: ["supplierId"],
       where: { orgId },
-      select: { supplierId: true, amount: true },
+      _sum: { totalAmount: true, amountPaid: true },
     }),
+    prisma.supplierPayment.groupBy({
+      by: ["supplierId"],
+      where: { orgId },
+      _sum: { amount: true },
+    }),
+    prisma.purchaseInvoice.aggregate({ where: { orgId }, _sum: { quantity: true } }),
     prisma.account.findMany({
       where: { orgId, isActive: true },
       select: { id: true, name: true },
@@ -43,41 +82,39 @@ export default async function SuppliersPage() {
       select: { id: true, fmModule: true, costPrice: true, salePrice: true },
       orderBy: { fmModule: "asc" },
     }),
+    // Full, unpaginated — the New Invoice modal's supplier picker needs every
+    // supplier, not just the current page's 25
+    prisma.supplier.findMany({
+      where: { orgId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
-  // Compute estPayable per supplier
-  const invoiceTotals: Record<string, number> = {};
-  const invoicePaidTotals: Record<string, number> = {};
-  for (const inv of rawInvoices) {
-    invoiceTotals[inv.supplierId] =
-      (invoiceTotals[inv.supplierId] ?? 0) + Number(inv.totalAmount);
-    invoicePaidTotals[inv.supplierId] =
-      (invoicePaidTotals[inv.supplierId] ?? 0) + Number(inv.amountPaid ?? 0);
+  const openingOwedById = new Map(allOpeningOwed.map((s) => [s.id, Number(s.openingOwed)]));
+  const invoiceTotals = new Map(invoiceTotalsBySupplier.map((g) => [g.supplierId, Number(g._sum.totalAmount ?? 0)]));
+  const invoicePaidTotals = new Map(invoiceTotalsBySupplier.map((g) => [g.supplierId, Number(g._sum.amountPaid ?? 0)]));
+  const paymentTotals = new Map(paymentTotalsBySupplier.map((g) => [g.supplierId, Number(g._sum.amount ?? 0)]));
+
+  function payableOf(supplierId: string): number {
+    return (
+      (openingOwedById.get(supplierId) ?? 0) +
+      (invoiceTotals.get(supplierId) ?? 0) -
+      (invoicePaidTotals.get(supplierId) ?? 0) -
+      (paymentTotals.get(supplierId) ?? 0)
+    );
   }
 
-  const paymentTotals: Record<string, number> = {};
-  for (const pay of rawPayments) {
-    paymentTotals[pay.supplierId] =
-      (paymentTotals[pay.supplierId] ?? 0) + Number(pay.amount);
-  }
-
-  const suppliers: SupplierRow[] = rawSuppliers.map((s) => {
-    const estPayable =
-      Number(s.openingOwed) +
-      (invoiceTotals[s.id] ?? 0) -
-      (invoicePaidTotals[s.id] ?? 0) -
-      (paymentTotals[s.id] ?? 0);
-    return {
-      id: s.id,
-      name: s.name,
-      phone: s.phone,
-      contactName: s.contactName,
-      address: s.address ?? null,
-      openingOwed: s.openingOwed.toString(),
-      estPayable: estPayable.toString(),
-      supplies: s.supplies,
-    };
-  });
+  const suppliers: SupplierRow[] = rawSuppliers.map((s) => ({
+    id: s.id,
+    name: s.name,
+    phone: s.phone,
+    contactName: s.contactName,
+    address: s.address ?? null,
+    openingOwed: s.openingOwed.toString(),
+    estPayable: payableOf(s.id).toString(),
+    supplies: s.supplies,
+  }));
 
   const invoices: InvoiceRow[] = rawInvoices.map((inv) => ({
     id: inv.id,
@@ -92,15 +129,15 @@ export default async function SuppliersPage() {
     notes: inv.notes,
   }));
 
-  const totalItemsSupplied = rawInvoices.reduce((sum, inv) => sum + inv.quantity, 0);
-  const totalPayable = suppliers.reduce((sum, s) => {
-    const v = parseFloat(s.estPayable);
-    return sum + (v > 0 ? v : 0);
+  // Global stat across every supplier, not just the current page
+  const totalPayable = allOpeningOwed.reduce((sum, s) => {
+    const payable = payableOf(s.id);
+    return sum + (payable > 0 ? payable : 0);
   }, 0);
 
   const stats: SupplierStats = {
-    totalSuppliers: suppliers.length,
-    itemsSupplied: totalItemsSupplied,
+    totalSuppliers: supplierTotal,
+    itemsSupplied: itemsSuppliedAgg._sum.quantity ?? 0,
     totalPayable,
   };
 
@@ -109,7 +146,7 @@ export default async function SuppliersPage() {
     name: a.name,
   }));
 
-  const supplierOptions: SupplierOption[] = rawSuppliers.map((s) => ({
+  const supplierOptions: SupplierOption[] = supplierOptionsRaw.map((s) => ({
     id: s.id,
     name: s.name,
   }));
@@ -132,6 +169,12 @@ export default async function SuppliersPage() {
           accounts={accounts}
           supplierOptions={supplierOptions}
           deviceOptions={deviceOptions}
+          tab={tab}
+          supplierPage={supplierPage}
+          supplierTotal={supplierTotal}
+          invoicePage={invoicePage}
+          invoiceTotal={invoiceTotal}
+          searchParams={sp}
         />
       </div>
     </div>

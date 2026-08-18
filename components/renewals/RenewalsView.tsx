@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Plus, RefreshCw, X } from "lucide-react";
 import {
   RecordRenewalModal,
   type PreFill,
   type InstallationOption,
   type AccountOption,
 } from "@/components/renewals/RecordRenewalModal";
+import { Pagination } from "@/components/ui/Pagination";
+import { buildHref } from "@/lib/pagination";
 
 export type RenewalStatus = "received" | "due_soon" | "overdue" | "upcoming";
 
@@ -32,9 +35,18 @@ export type RenewalRow = {
   nextRenewalDateIso: string; // current nextRenewalDate from installation (= dueDate)
 };
 
+type Filter = "pending" | "received" | "all";
+
 type Props = {
   rows: RenewalRow[];
   accounts: AccountOption[];
+  filter: Filter;
+  page: number;
+  total: number;
+  dueSoonCount: number;
+  from: string;
+  to: string;
+  searchParams: Record<string, string | undefined>;
 };
 
 /* ─── Helpers ──────────────────────────────────────────── */
@@ -76,18 +88,28 @@ function StatusBadge({ status, daysUntilDue }: { status: RenewalStatus; daysUnti
   return <span className="inline-flex rounded-full bg-surface-tertiary px-2.5 py-1 text-xs font-semibold text-text-secondary">Upcoming</span>;
 }
 
-type Filter = "due_soon" | "received" | "overdue" | "all";
 const FILTER_LABELS: Record<Filter, string> = {
-  due_soon: "Due soon",
+  pending: "Pending",
   received: "Received",
-  overdue: "Overdue",
   all: "All",
 };
 
+const DATE_INPUT =
+  "h-9 rounded-[9px] border border-border bg-surface px-3 text-[13px] text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-light transition-colors";
+
 /* ─── Main view ────────────────────────────────────────── */
 
-export function RenewalsView({ rows, accounts }: Props) {
-  const [filter, setFilter] = useState<Filter>("due_soon");
+export function RenewalsView({
+  rows,
+  accounts,
+  filter,
+  page,
+  total,
+  dueSoonCount,
+  from,
+  to,
+  searchParams,
+}: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPreFill, setDrawerPreFill] = useState<PreFill | null>(null);
 
@@ -125,23 +147,6 @@ export function RenewalsView({ rows, accounts }: Props) {
     nextRenewalDateIso: r.nextRenewalDateIso,
   }));
 
-  const filtered = rows.filter((r) => {
-    if (filter === "due_soon") return r.status === "due_soon" || r.status === "overdue";
-    if (filter === "received") return r.status === "received";
-    if (filter === "overdue") return r.status === "overdue";
-    return true;
-  });
-
-  // Sort: overdue first → due_soon → received → upcoming
-  const ORDER: Record<RenewalStatus, number> = { overdue: 0, due_soon: 1, received: 2, upcoming: 3 };
-  const sorted = [...filtered].sort((a, b) => {
-    const diff = ORDER[a.status] - ORDER[b.status];
-    if (diff !== 0) return diff;
-    return new Date(a.dueDateIso).getTime() - new Date(b.dueDateIso).getTime();
-  });
-
-  const dueSoonCount = rows.filter((r) => r.status === "due_soon" || r.status === "overdue").length;
-
   return (
     <>
       <RecordRenewalModal
@@ -153,13 +158,13 @@ export function RenewalsView({ rows, accounts }: Props) {
       />
 
       {/* Toolbar */}
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         {/* Segmented filter */}
         <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
           {(Object.keys(FILTER_LABELS) as Filter[]).map((f) => (
-            <button
+            <Link
               key={f}
-              onClick={() => setFilter(f)}
+              href={buildHref("/renewals", searchParams, { status: f === "pending" ? undefined : f })}
               className={`relative rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
                 filter === f
                   ? "bg-text-primary font-semibold text-white"
@@ -167,12 +172,12 @@ export function RenewalsView({ rows, accounts }: Props) {
               }`}
             >
               {FILTER_LABELS[f]}
-              {f === "due_soon" && dueSoonCount > 0 && (
+              {f === "pending" && dueSoonCount > 0 && (
                 <span className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">
                   {dueSoonCount}
                 </span>
               )}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -186,13 +191,55 @@ export function RenewalsView({ rows, accounts }: Props) {
         </button>
       </div>
 
+      {/* Due-date range — a plain GET form, so it works the same way the filter
+          tabs do and needs no client state. Omitting `page` resets to page 1 */}
+      <form method="GET" action="/renewals" className="mb-5 flex flex-wrap items-center gap-2">
+        {filter !== "pending" && <input type="hidden" name="status" value={filter} />}
+
+        <span className="text-[12px] font-medium uppercase tracking-wider text-text-muted">
+          Due between
+        </span>
+        <input
+          type="date"
+          name="from"
+          defaultValue={from}
+          aria-label="Due date from"
+          className={DATE_INPUT}
+        />
+        <span className="text-[13px] text-text-muted">and</span>
+        <input
+          type="date"
+          name="to"
+          defaultValue={to}
+          aria-label="Due date to"
+          className={DATE_INPUT}
+        />
+
+        <button
+          type="submit"
+          className="flex h-9 items-center rounded-[9px] border border-border bg-surface px-3.5 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
+        >
+          Apply
+        </button>
+
+        {(from || to) && (
+          <Link
+            href={buildHref("/renewals", searchParams, { from: undefined, to: undefined })}
+            className="flex h-9 items-center gap-1 rounded-[9px] px-2.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text-primary"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </Link>
+        )}
+      </form>
+
       {/* Table card */}
       <div
         className="rounded-[20px] border border-border bg-surface"
         style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
-        {sorted.length === 0 ? (
-          <EmptyState filter={filter} />
+        {rows.length === 0 ? (
+          <EmptyState filter={filter} ranged={Boolean(from || to)} />
         ) : (
           <table className="w-full">
             <thead>
@@ -205,11 +252,11 @@ export function RenewalsView({ rows, accounts }: Props) {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((row, i) => (
+              {rows.map((row, i) => (
                 <tr
                   key={row.installationId}
                   className={`transition-colors hover:bg-surface-muted ${
-                    i < sorted.length - 1 ? "border-b border-border" : ""
+                    i < rows.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
                   {/* Client */}
@@ -298,19 +345,23 @@ export function RenewalsView({ rows, accounts }: Props) {
             </tbody>
           </table>
         )}
+        {total > 0 && (
+          <Pagination page={page} total={total} label="renewal" basePath="/renewals" searchParams={searchParams} />
+        )}
       </div>
     </>
   );
 }
 
-function EmptyState({ filter }: { filter: Filter }) {
+function EmptyState({ filter, ranged }: { filter: Filter; ranged: boolean }) {
   const messages: Record<Filter, { title: string; sub: string }> = {
-    due_soon: { title: "No renewals due soon", sub: "All installations are up to date." },
+    pending: { title: "No pending renewals", sub: "Everything has been collected." },
     received: { title: "No received renewals", sub: "Record a renewal payment to see it here." },
-    overdue: { title: "No overdue renewals", sub: "Great — nothing is past due." },
     all: { title: "No renewals yet", sub: "Renewals appear here once installations are active." },
   };
   const { title, sub } = messages[filter];
+  // A date range is far more likely to be why a list is empty than the filter
+  const shownSub = ranged ? "Nothing falls due in the dates picked — widen the range or clear it." : sub;
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
       <div className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-accent-light">
@@ -318,7 +369,7 @@ function EmptyState({ filter }: { filter: Filter }) {
       </div>
       <div className="text-center">
         <p className="text-[15px] font-semibold text-text-primary">{title}</p>
-        <p className="mt-1 text-[13px] text-text-secondary">{sub}</p>
+        <p className="mt-1 text-[13px] text-text-secondary">{shownSub}</p>
       </div>
     </div>
   );

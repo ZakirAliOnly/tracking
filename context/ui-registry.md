@@ -13,6 +13,7 @@ shadcn/ui was never installed, so this folder holds the project's own primitives
 | ToastProvider | components/ui/ToastProvider.tsx | children | Mounted once in `app/layout.tsx`. Renders the stack fixed at `right-5 top-5`, `z-[100]`, auto-dismissing after 6s |
 | PhoneInput | components/ui/PhoneInput.tsx | name?, value?, defaultValue?, onChange?, required?, placeholder?, className? | Digits-only, hard-capped at 11. Works controlled (`value`) or uncontrolled (`name` + `defaultValue`) |
 | SubmitButton | components/ui/SubmitButton.tsx | children, pendingLabel?, disabled?, className?, style?, spinnerClassName?, aria-label? | The only `type="submit"` in the app. Reads `useFormStatus()` itself |
+| Pagination | components/ui/Pagination.tsx | page, total, label, basePath, searchParams, pageSize?, paramName? | Server Component — Prev/Next `<Link>`s, no client state. `paramName` (default `"page"`) lets a page host more than one independently-paged table (Suppliers uses `spage`/`ipage`) |
 
 **Save pattern (duplicate guard):** no form writes its own `type="submit"` button — every one is a `SubmitButton`. It calls `useFormStatus()` from inside the form, so from the first click until the Server Action returns it is `disabled` + `aria-busy` and shows a spinning ring, and neither a second click nor Enter can post the same form twice. Never hand-roll `disabled={isPending}` + a copied spinner span again; if a form needs its own reason to block (an unpicked row, an empty selection) pass it as `disabled`, which is OR-ed with the busy state. Because the button owns the pending state, `useActionState` is destructured as `const [state, formAction] = …` — the third element is not needed. The spinner is `border-current`, so it takes the button's own text colour on accent, success and error buttons alike. Icon-only submits (delete, sign out) pass `pendingLabel=""` so the spinner replaces the icon.
 
@@ -74,10 +75,11 @@ if (!open) return null;          // after every hook — never before
 
 | Component | Path | Key types | Notes |
 |---|---|---|---|
-| SuppliersView | components/suppliers/SuppliersView.tsx | SupplierRow, InvoiceRow, SupplierStats | Two tabs: Suppliers / Purchase Invoices |
-| StockView | components/stock/StockView.tsx | DeviceRow, StockStats | Filter tabs + stats cards |
-| RenewalsView | components/renewals/RenewalsView.tsx | RenewalRow, RenewalStatus | Filter tabs with red due count badge |
-| InstallationsView | components/installations/InstallationsView.tsx | InstallationRow | Expandable detail panel; toolbar opens New installation + Import CSV modals |
+| SuppliersView | components/suppliers/SuppliersView.tsx | SupplierRow, InvoiceRow, SupplierStats | Two tabs: Suppliers / Purchase Invoices, each server-paginated independently (`?spage=`/`?ipage=`) |
+| StockView | components/stock/StockView.tsx | DeviceRow, StockStats | Filter tabs (URL-driven, server-paginated) + stats cards (org-wide `groupBy`, not page-scoped) |
+| RenewalsView | components/renewals/RenewalsView.tsx | RenewalRow, RenewalStatus | Three filter tabs — Pending (default) / Received / All — plus a due-date range row beneath them, all URL-driven and server-paginated; red attention badge on Pending; row data comes from `lib/renewals-query.ts`'s raw SQL, not a plain `findMany` |
+| InstallationsView | components/installations/InstallationsView.tsx | InstallationRow | Expandable detail panel; toolbar opens New installation + Import CSV modals; filter tabs URL-driven, server-paginated |
+| ExpensesView | components/expenses/ExpensesView.tsx | ExpenseRow | Date-range filter tabs (month/quarter/year/all, URL-driven, server-paginated); stat tiles from `count()`/`aggregate()`, not the loaded page |
 
 ---
 
@@ -127,6 +129,7 @@ CSV import lives inside the installations module — there is no separate `/impo
 - Row hover: `hover:bg-surface-muted`
 - Last row: no bottom border
 - Footer row: `text-[12px] text-text-muted` showing "Showing N of M"
+- **Server-paginated tables** (Installations, Renewals, Expenses, Stock, Suppliers): the footer is `<Pagination>` instead of a static line — "Showing A–B of N" plus Prev/Next. Filter tabs on these pages are `<Link>`s built with `buildHref` (`lib/pagination.ts`), not `useState` + `.filter()` — the database filters and paginates together server-side. See the progress-tracker note for why (client-side filtering over a partial page would silently miss rows).
 
 ## Button patterns
 

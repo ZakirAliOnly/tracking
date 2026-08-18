@@ -4,8 +4,14 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildImportPlan, type ImportPlan } from "@/lib/import-plan";
+import { resolveImportedDevice } from "@/lib/devices";
 import { writeInstallation } from "@/lib/installation-write";
-import { importPayloadSchema, installationImportRowSchema } from "@/lib/validations/import";
+import {
+  describeRowIssues,
+  importPayloadSchema,
+  installationImportRowSchema,
+  toImportContacts,
+} from "@/lib/validations/import";
 
 export type ImportRowError = { line: number; message: string };
 
@@ -36,6 +42,24 @@ function firstIssue(issues: { message: string }[]): string {
 
 function lineOf(index: number): number {
   return index + 2;
+}
+
+/**
+ * The sheet has no payment method column, so every imported row is booked to
+ * Cash — created once if the org has never set it up.
+ */
+async function cashAccountId(orgId: string): Promise<string> {
+  const existing = await prisma.account.findFirst({
+    where: { orgId, name: { equals: "Cash", mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.account.create({
+    data: { orgId, name: "Cash", type: "cash" },
+    select: { id: true },
+  });
+  return created.id;
 }
 
 /** Read-only preflight — reports duplicates and pending changes without writing. */
@@ -81,6 +105,8 @@ export async function importInstallations(rows: unknown): Promise<ImportResult> 
       errors: [],
     };
 
+    const accountId = await cashAccountId(orgId);
+
     const customers = await prisma.customer.findMany({
       where: { orgId },
       select: { id: true, name: true },
@@ -107,7 +133,12 @@ export async function importInstallations(rows: unknown): Promise<ImportResult> 
       const parsed = installationImportRowSchema.safeParse(raw);
       if (!parsed.success) {
         summary.failed += 1;
-        summary.errors.push({ line, message: firstIssue(parsed.error.issues) });
+        summary.errors.push({
+          line,
+          message: describeRowIssues(raw, line)
+            .map((i) => (i.column ? `${i.column}: ${i.message}` : i.message))
+            .join(" · "),
+        });
         continue;
       }
 
@@ -116,18 +147,55 @@ export async function importInstallations(rows: unknown): Promise<ImportResult> 
       try {
         const customerId = customerByName.get(row.customerName.toLowerCase()) ?? null;
 
-        const outcome = await prisma.$transaction((tx) =>
-          writeInstallation(tx, orgId, {
+        // Nothing is left to collect once what was paid covers all three charges
+        const received =
+          row.amountPaid >= row.amount + row.simPayment + row.devicePayment;
+
+        const outcome = await prisma.$transaction(async (tx) => {
+          const devices = row.imeiNo
+            ? [
+                await resolveImportedDevice(tx, orgId, {
+                  imeiNo: row.imeiNo,
+                  fmModule: row.fmModule,
+                  gsmNo: row.simNo,
+                  gsmNoAlt: row.gsmNoAlt,
+                  cutOff: row.cutOff,
+                  salePrice: row.devicePayment,
+                }),
+              ]
+            : undefined;
+
+          return writeInstallation(tx, orgId, {
             customerId,
             customerName: row.customerName,
             registrationNo: row.registrationNo,
             installationDate: row.installationDate,
-            received: row.received,
+            received,
             amount: row.amount,
             simPayment: row.simPayment,
             simNo: row.simNo,
-          })
-        );
+            accountId,
+            devicePayment: row.devicePayment,
+            otherAmount: row.otherAmount,
+            amountPaid: row.amountPaid,
+            customerDetail: {
+              phone: row.mobile1,
+              address: row.address,
+              remarks: row.remarks,
+              password: row.password,
+            },
+            contacts: toImportContacts(row),
+            vehicleDetail: {
+              description: row.carDescription,
+              make: row.make,
+              model: row.model,
+              engineNo: row.engineNo,
+              chassisNo: row.chassisNo,
+              colour: row.colour,
+            },
+            devices,
+          });
+        });
 
         if (!customerId) {
           const created = await prisma.customer.findFirst({

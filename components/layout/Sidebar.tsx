@@ -6,7 +6,6 @@ import { logoutAction } from "@/actions/auth";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import {
   LayoutDashboard,
-  Users,
   Wrench,
   RefreshCw,
   Package,
@@ -35,7 +34,6 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Main",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/customers", label: "Customers", icon: Users },
       { href: "/installations", label: "Installations", icon: Wrench },
       { href: "/renewals", label: "Renewals", icon: RefreshCw },
     ],

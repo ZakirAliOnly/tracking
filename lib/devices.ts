@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import type { InstallableDevice } from "@/lib/device-options";
 
@@ -22,6 +24,80 @@ export async function listInstallableDevices(orgId: string): Promise<Installable
     salePrice: d.salePrice?.toString() ?? null,
     quantity: d.quantity,
   }));
+}
+
+/** The device identity columns a CSV row carries. */
+export type ImportedDeviceDetail = {
+  imeiNo: string;
+  fmModule: string | null;
+  gsmNo: string | null;
+  gsmNoAlt: string | null;
+  cutOff: string | null;
+  salePrice: number;
+};
+
+/**
+ * The device on an imported row. An IMEI is one physical unit, so it is matched
+ * on that alone — a plate re-imported later reuses the same stock row instead of
+ * making a second one. A unit nobody has recorded yet is created already fitted,
+ * which is what a historical sheet describes: it was installed long ago and was
+ * never in stock here.
+ *
+ * Kept apart from `resolveInstallationDevices`, which serves the entry form and
+ * refuses stock lines that have no sale price or have run out — neither rule can
+ * apply to a sheet describing work already done.
+ */
+export async function resolveImportedDevice(
+  tx: Prisma.TransactionClient,
+  orgId: string,
+  detail: ImportedDeviceDetail
+): Promise<DeviceLine> {
+  const identity = omitNull({
+    fmModule: detail.fmModule,
+    gsmNo: detail.gsmNo,
+    gsmNoAlt: detail.gsmNoAlt,
+    cutOff: detail.cutOff,
+  });
+
+  const existing = await tx.device.findFirst({
+    where: { orgId, imeiNo: detail.imeiNo },
+    select: { id: true, salePrice: true },
+  });
+
+  if (existing) {
+    await tx.device.update({ where: { id: existing.id }, data: identity });
+    return {
+      deviceId: existing.id,
+      quantity: 1,
+      // The stock row's own price wins — the sheet's figure is what was charged
+      // on the day, not what the unit is worth now
+      unitPrice: Number(existing.salePrice ?? detail.salePrice),
+    };
+  }
+
+  const created = await tx.device.create({
+    data: {
+      id: randomUUID(),
+      orgId,
+      imeiNo: detail.imeiNo,
+      salePrice: detail.salePrice,
+      // Created with the unit already accounted for; `moveStock` takes it out
+      quantity: 1,
+      status: "in_stock",
+      ...identity,
+    },
+    select: { id: true },
+  });
+
+  return { deviceId: created.id, quantity: 1, unitPrice: detail.salePrice };
+}
+
+function omitNull<T extends Record<string, string | null>>(
+  source: T
+): { [K in keyof T]?: NonNullable<T[K]> } {
+  return Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== null)
+  ) as { [K in keyof T]?: NonNullable<T[K]> };
 }
 
 /** One device line as the form posts it. */

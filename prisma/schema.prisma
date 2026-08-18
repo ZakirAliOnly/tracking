@@ -164,10 +164,19 @@ model Installation {
   installationDate DateTime     @map("installation_date") @db.Date
   received         Boolean      @default(false)
   simNo            String?      @map("sim_no")
+  /// Plain reference text kept on the installation itself — not linked to a
+  /// Stock device, purely informational (unlike the CSV import's IMEI, which
+  /// matches or creates a real Device row)
+  gsmNo            String?      @map("gsm_no")
+  fmModule         String?      @map("fm_module")
+  cutOff           String?      @map("cut_off")
+  imeiNo           String?      @map("imei_no")
   installationPay  Decimal      @default(0) @map("installation_pay") @db.Decimal(12, 2)
   simPayment       Decimal      @default(0) @map("sim_payment") @db.Decimal(12, 2)
   devicePayment    Decimal      @default(0) @map("device_payment") @db.Decimal(12, 2)
   netPayment       Decimal      @default(0) @map("net_payment") @db.Decimal(12, 2)
+  /// Net left over after SIM, device and expenses — entered by hand, never computed
+  otherAmount      Decimal      @default(0) @map("other_amount") @db.Decimal(12, 2)
   totalAmount      Decimal?     @map("total_amount") @db.Decimal(12, 2)
   discount         Decimal      @default(0) @db.Decimal(12, 2)
   amountPaid       Decimal      @default(0) @map("amount_paid") @db.Decimal(12, 2)

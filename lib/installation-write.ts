@@ -9,6 +9,27 @@ import { normalizeRegistration } from "@/lib/import-plan";
  * money. Both the New installation form and the CSV import normalise into this
  * shape so the mapping lives in exactly one place.
  */
+/** The sheet's Contact 1–4 pairs. Position is the sheet's own column order. */
+export type ContactLine = { name: string; mobile: string; position: number };
+
+/** Everything the CSV knows about the vehicle beyond its plate. */
+export type VehicleDetail = {
+  description: string | null;
+  make: string | null;
+  model: string | null;
+  engineNo: string | null;
+  chassisNo: string | null;
+  colour: string | null;
+};
+
+/** Everything the CSV knows about the customer beyond their name. */
+export type CustomerDetail = {
+  phone: string | null;
+  address: string | null;
+  remarks: string | null;
+  password: string | null;
+};
+
 export type InstallationRecord = {
   customerId: string | null;
   customerName: string;
@@ -18,6 +39,26 @@ export type InstallationRecord = {
   amount: number;
   simPayment: number;
   simNo: string | null;
+  /**
+   * The groups below follow the same rule as `accountId` — absent means the
+   * caller has no opinion and whatever is stored is left alone, so the New
+   * installation form never has to send fields it does not collect.
+   */
+  customerDetail?: CustomerDetail;
+  contacts?: ContactLine[];
+  vehicleDetail?: VehicleDetail;
+  devicePayment?: number;
+  otherAmount?: number;
+  /**
+   * Plain reference text kept on the installation itself — not linked to a
+   * Stock device or its quantity. Used by the New installation form, which
+   * fits devices from real stock separately; these are just notes about the
+   * unit that was actually fitted.
+   */
+  gsmNo?: string;
+  fmModule?: string;
+  cutOff?: string;
+  imeiNo?: string;
   /**
    * Already verified to belong to this org. Absent means the caller has no
    * opinion — the CSV import — so a re-imported row keeps the payment method
@@ -37,6 +78,15 @@ export type InstallationRecord = {
 };
 
 export type WriteOutcome = "created" | "updated";
+
+/** Blank cells carry no instruction, so they are dropped rather than written as null. */
+function omitNull<T extends Record<string, string | null>>(
+  source: T
+): { [K in keyof T]?: NonNullable<T[K]> } {
+  return Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== null)
+  ) as { [K in keyof T]?: NonNullable<T[K]> };
+}
 
 /**
  * Squares stock with what is actually fitted. Everything previously on this
@@ -73,13 +123,52 @@ export async function writeInstallation(
   orgId: string,
   record: InstallationRecord
 ): Promise<WriteOutcome> {
+  // Only the keys the caller actually supplied, so a blank cell never wipes a
+  // detail somebody filled in by hand
+  const customerDetail = record.customerDetail
+    ? omitNull({
+        phone: record.customerDetail.phone,
+        address: record.customerDetail.address,
+        remarks: record.customerDetail.remarks,
+        password: record.customerDetail.password,
+      })
+    : {};
+
   const customerId =
     record.customerId ??
     (
       await tx.customer.create({
-        data: { orgId, name: record.customerName, phone: "" },
+        data: { orgId, name: record.customerName, phone: "", ...customerDetail },
       })
     ).id;
+
+  if (record.customerId !== null && Object.keys(customerDetail).length > 0) {
+    await tx.customer.update({ where: { id: customerId }, data: customerDetail });
+  }
+
+  if (record.contacts !== undefined) {
+    // Written by position so a row carrying only Contact 1 leaves exactly one
+    for (const contact of record.contacts) {
+      const existing = await tx.contact.findFirst({
+        where: { customerId, position: contact.position },
+        select: { id: true },
+      });
+
+      if (existing) {
+        await tx.contact.update({
+          where: { id: existing.id },
+          data: { name: contact.name, mobile: contact.mobile },
+        });
+      } else {
+        await tx.contact.create({
+          data: { customerId, name: contact.name, mobile: contact.mobile, position: contact.position },
+        });
+      }
+    }
+
+    const kept = record.contacts.map((c) => c.position);
+    await tx.contact.deleteMany({ where: { customerId, position: { notIn: kept } } });
+  }
 
   // Matched case-insensitively so "bhn-058" does not become a second vehicle
   // alongside "BHN-058"; only brand-new plates get the normalised form
@@ -90,9 +179,14 @@ export async function writeInstallation(
     select: { id: true },
   });
 
+  const vehicleDetail = record.vehicleDetail ? omitNull(record.vehicleDetail) : {};
+
   const vehicle = existingVehicle
-    ? await tx.vehicle.update({ where: { id: existingVehicle.id }, data: { customerId } })
-    : await tx.vehicle.create({ data: { orgId, customerId, registrationNo } });
+    ? await tx.vehicle.update({
+        where: { id: existingVehicle.id },
+        data: { customerId, ...vehicleDetail },
+      })
+    : await tx.vehicle.create({ data: { orgId, customerId, registrationNo, ...vehicleDetail } });
 
   const installationDate = toDateOnly(record.installationDate);
 
@@ -113,6 +207,12 @@ export async function writeInstallation(
     ...(record.accountId === undefined ? {} : { accountId: record.accountId }),
     ...(record.discount === undefined ? {} : { discount: record.discount }),
     ...(record.amountPaid === undefined ? {} : { amountPaid: record.amountPaid }),
+    ...(record.devicePayment === undefined ? {} : { devicePayment: record.devicePayment }),
+    ...(record.otherAmount === undefined ? {} : { otherAmount: record.otherAmount }),
+    ...(record.gsmNo === undefined ? {} : { gsmNo: record.gsmNo }),
+    ...(record.fmModule === undefined ? {} : { fmModule: record.fmModule }),
+    ...(record.cutOff === undefined ? {} : { cutOff: record.cutOff }),
+    ...(record.imeiNo === undefined ? {} : { imeiNo: record.imeiNo }),
     // The single column still holds the first device so older read paths work
     ...(record.devices === undefined ? {} : { deviceId: record.devices[0]?.deviceId ?? null }),
   };

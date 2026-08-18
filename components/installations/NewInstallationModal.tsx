@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Check, ChevronDown, Search, UserPlus, X } from "lucide-react";
+import { Check, ChevronDown, Search, SlidersHorizontal, UserPlus, X } from "lucide-react";
 import { createInstallations, type InstallationActionState } from "@/actions/installations";
 import { useActionToast } from "@/components/ui/ToastProvider";
 import { PhoneInput } from "@/components/ui/PhoneInput";
@@ -60,6 +60,7 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
   const [discountMode, setDiscountMode] = useState<DiscountMode>("fixed");
   const [discountValue, setDiscountValue] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const query = customerName.trim().toLowerCase();
 
@@ -96,6 +97,7 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
     setDiscountMode("fixed");
     setDiscountValue("");
     setAmountPaid("");
+    setMoreOpen(false);
   }
 
   useEffect(() => {
@@ -237,6 +239,15 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                 )}
               </div>
 
+              {/* Phone */}
+              <div className="flex flex-col gap-1.5">
+                <label className={FIELD_LABEL}>Phone</label>
+                <PhoneInput name="phone" className={MONO_INPUT} />
+                <p className="text-[12px] text-text-muted">
+                  11 digits, or leave blank — an existing customer's phone is left as it is
+                </p>
+              </div>
+
               {/* Registration No + date */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -276,7 +287,7 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
               />
 
               {/* Money */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className={FIELD_LABEL}>Amount</label>
                   <input
@@ -306,6 +317,18 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                     placeholder="0"
                     value={simPayment}
                     onChange={(e) => setSimPayment(e.target.value)}
+                    className={INPUT}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className={FIELD_LABEL}>Amount Device</label>
+                  <input
+                    name="devicePayment"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="0"
                     className={INPUT}
                   />
                 </div>
@@ -382,6 +405,97 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                     className={INPUT}
                   />
                 </div>
+              </div>
+
+              {/* More details — contacts, address, vehicle, device reference */}
+              <div className="rounded-[12px] border border-border">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((v) => !v)}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left"
+                >
+                  <span className="flex items-center gap-2 text-[13px] font-semibold text-text-primary">
+                    <SlidersHorizontal className="h-3.5 w-3.5 text-text-muted" />
+                    More details
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-text-muted transition-transform ${
+                      moreOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {moreOpen && (
+                  <div className="flex flex-col gap-5 border-t border-border px-4 py-4">
+                    {/* Address */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className={FIELD_LABEL}>Address</label>
+                      <input name="address" placeholder="12 Mall Road, Lahore" className={INPUT} />
+                    </div>
+
+                    {/* Contacts */}
+                    <div className="flex flex-col gap-2">
+                      <label className={FIELD_LABEL}>Contacts</label>
+                      {([1, 2, 3, 4] as const).map((n) => (
+                        <div key={n} className="grid grid-cols-2 gap-2">
+                          <input
+                            name={`contact${n}Name`}
+                            placeholder={`Contact ${n} name`}
+                            className={INPUT}
+                          />
+                          <PhoneInput name={`contact${n}Mobile`} className={MONO_INPUT} />
+                        </div>
+                      ))}
+                      <p className="text-[12px] text-text-muted">
+                        Contact 1's mobile does not replace Phone above — enter both if they differ
+                      </p>
+                    </div>
+
+                    {/* Vehicle detail */}
+                    <div className="flex flex-col gap-2">
+                      <label className={FIELD_LABEL}>Vehicle</label>
+                      <input
+                        name="carDescription"
+                        placeholder="Car Description — e.g. White Corolla GLi"
+                        className={INPUT}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <input name="make" placeholder="Make" className={INPUT} />
+                        <input name="model" placeholder="Model" className={INPUT} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          name="engineNo"
+                          placeholder="Engine Number"
+                          className={MONO_INPUT}
+                        />
+                        <input
+                          name="chassisNo"
+                          placeholder="Chassis Number"
+                          className={MONO_INPUT}
+                        />
+                      </div>
+                      <input name="colour" placeholder="Colour" className={INPUT} />
+                    </div>
+
+                    {/* Device reference — plain text kept on the installation, not linked to Stock */}
+                    <div className="flex flex-col gap-2">
+                      <label className={FIELD_LABEL}>Device reference</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <PhoneInput name="gsmNo" placeholder="GSM Number" className={MONO_INPUT} />
+                        <input name="fmModule" placeholder="FM Module" className={MONO_INPUT} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input name="cutOff" placeholder="Cut Off" className={MONO_INPUT} />
+                        <input name="imeiNo" placeholder="IMEI Number" className={MONO_INPUT} />
+                      </div>
+                      <p className="text-[12px] text-text-muted">
+                        Kept as notes on this installation — Stock and the fitted device above are
+                        not affected
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {money.total > 0 && <PaymentSummary money={money} />}

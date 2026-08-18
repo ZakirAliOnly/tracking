@@ -20,11 +20,41 @@ export type ColumnSpec = {
 export const INSTALLATION_COLUMNS: ColumnSpec[] = [
   { key: "customerName", header: "Client Name", aliases: ["Customer Name"], required: true, hint: "Matched on this name — a new customer is created if it is not found", sample: "Mumtaz Ahmad" },
   { key: "registrationNo", header: "Registration No", aliases: ["Reg No", "Registration Number"], required: true, hint: "Vehicle number plate — one installation per vehicle", sample: "BHN-058" },
-  { key: "installationDate", header: "Installetion Date", aliases: ["Installation Date"], required: true, format: "YYYY-MM-DD", hint: "Write it as 2026-01-15. Day-first 15/01/2026 is also read — month-first 01/15/2026 is not", sample: "2026-01-15" },
-  { key: "received", header: "received", aliases: ["Received"], required: false, format: "Yes or No", hint: "Has the money come in? Defaults to No", sample: "Yes" },
+  { key: "installationDate", header: "Installetion Date", aliases: ["Installation Date"], required: true, format: "YYYY-MM-DD", hint: "Write it as 2026-01-15. 15/01/2026 and 01/15/2026 are both read — whichever reading is a real date wins", sample: "2026-01-15" },
+
+  // The sheet repeats "Mobile Number" after each named contact, so each pair is
+  // resolved by how many times the heading has been seen
+  { key: "contact1", header: "Contact 1", required: false, hint: "Main contact person — their mobile also becomes the customer's phone number", sample: "Mumtaz Ahmad" },
+  { key: "mobile1", header: "Mobile Number", occurrence: 1, required: false, hint: "Mobile for Contact 1 — any digits are kept as written, no fixed length", sample: "03011234567" },
+  { key: "contact2", header: "Contact 2", required: false, hint: "Second contact person — leave blank if there is only one", sample: "Bilal Ahmad" },
+  { key: "mobile2", header: "Mobile Number", occurrence: 2, required: false, hint: "Mobile for Contact 2", sample: "03021234567" },
+  { key: "contact3", header: "Contact 3", required: false, hint: "Third contact person", sample: "" },
+  { key: "mobile3", header: "Mobile Number", occurrence: 3, required: false, hint: "Mobile for Contact 3", sample: "" },
+  { key: "contact4", header: "Contact 4", required: false, hint: "Fourth contact person", sample: "" },
+  { key: "mobile4", header: "Mobile Number", occurrence: 4, required: false, hint: "Mobile for Contact 4", sample: "" },
+
+  { key: "remarks", header: "Remarks", required: false, hint: "Free notes kept on the customer", sample: "Repeat client" },
+  { key: "address", header: "Address", required: false, hint: "Customer's address", sample: "12 Mall Road, Lahore" },
+  { key: "password", header: "Password", required: false, hint: "Tracking portal password held for the customer", sample: "abc123" },
+
+  { key: "carDescription", header: "Car Description", aliases: ["Description"], required: false, hint: "How the vehicle is described on the sheet", sample: "White Corolla GLi" },
+  { key: "make", header: "Make", required: false, hint: "Vehicle manufacturer", sample: "Toyota" },
+  { key: "model", header: "Model", required: false, hint: "Vehicle model", sample: "Corolla GLi 2019" },
+  { key: "engineNo", header: "Engine Number", aliases: ["Engine No"], required: false, hint: "Engine number", sample: "2NZ1234567" },
+  { key: "chassisNo", header: "Chassis Number", aliases: ["Chassis No"], required: false, hint: "Chassis number", sample: "NZE1419876543" },
+  { key: "cutOff", header: "Cut OFF", aliases: ["Cutoff", "Cut Off"], required: false, hint: "Cut-off fitted with the device", sample: "Relay" },
+  { key: "colour", header: "Colour", aliases: ["Color"], required: false, hint: "Vehicle colour", sample: "White" },
+
+  { key: "simNo", header: "GSM Number", aliases: ["Sim Number", "Sim No"], required: false, hint: "SIM number fitted in the device — any digits are kept as written, no fixed length", sample: "03011234567" },
+  { key: "gsmNoAlt", header: "GSM Numbar", required: false, hint: "Second SIM number, if the device carries one", sample: "" },
+  { key: "imeiNo", header: "IMEI Number", aliases: ["IMEI", "IMEI No"], required: false, hint: "Identifies the device — a matching stock item is used, or a new one is created and taken out of stock", sample: "860123456789012" },
+  { key: "fmModule", header: "FM Mudule", aliases: ["FM Module"], required: false, hint: "Device model fitted", sample: "GT06N" },
+
   { key: "amount", header: "Amount", aliases: ["amount"], required: false, format: "number", hint: "Installation charge", sample: "8000" },
   { key: "simPayment", header: "Sim", aliases: ["Sim and Osting", "Sim Payment", "Sim Paymint"], required: false, format: "number", hint: "SIM charge", sample: "6000" },
-  { key: "simNo", header: "Sim Number", aliases: ["GSM Number", "Sim No"], required: false, format: "11 digits", hint: "SIM number fitted in the device", sample: "03011234567" },
+  { key: "devicePayment", header: "Amount Device", aliases: ["Device Amount", "Device"], required: false, format: "number", hint: "Device charge", sample: "4000" },
+  { key: "amountPaid", header: "Total Paid", aliases: ["Total Pay", "Paid"], required: false, format: "number", hint: "What the customer has actually paid — the row counts as received once this covers Amount + Sim + Amount Device", sample: "18000" },
+  { key: "otherAmount", header: "Others", aliases: ["Other"], required: false, format: "number", hint: "What is left after SIM, device and expenses are taken off — written by hand, never worked out for you", sample: "2000" },
 ];
 
 export const TEMPLATE_FILENAME = "installations-import-template.csv";
@@ -160,8 +190,18 @@ export function parseDate(value: string): string | null {
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
   if (iso) return buildDate(Number(iso[1]), Number(iso[2]), Number(iso[3]));
 
-  const dayFirst = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/.exec(trimmed);
-  if (dayFirst) return buildDate(Number(dayFirst[3]), Number(dayFirst[2]), Number(dayFirst[1]));
+  // Day-first is the assumed reading — but Excel re-writes whatever a sheet had
+  // into its own locale's order the moment it re-saves the file, regardless of
+  // what was typed, so "1/15/2026" (month-first) reaches here just as often as
+  // day-first sheets do. Only one order can ever be a real date when one part
+  // is over 12, so that reading is used automatically rather than rejected
+  const slash = /^(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})$/.exec(trimmed);
+  if (slash) {
+    const [, a, b, year] = slash;
+    const dayFirst = buildDate(Number(year), Number(b), Number(a));
+    if (dayFirst) return dayFirst;
+    return buildDate(Number(year), Number(a), Number(b));
+  }
 
   // Excel keeps dates as a serial day count when the sheet is exported unformatted
   const serial = /^\d{5}$/.exec(trimmed);

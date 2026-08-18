@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { Package, Plus, MoreHorizontal } from "lucide-react";
 import { AddDeviceModal, type SupplierOption } from "@/components/stock/AddDeviceModal";
 import { EditDeviceModal, type EditDeviceTarget } from "@/components/stock/EditDeviceModal";
+import { Pagination } from "@/components/ui/Pagination";
+import { buildHref } from "@/lib/pagination";
 
 export type DeviceStatus = "in_stock" | "faulty" | "returned";
 
@@ -23,13 +26,17 @@ export type StockStats = {
   returned: number;
 };
 
+type Filter = "all" | "in_stock" | "faulty" | "returned";
+
 type Props = {
   devices: DeviceRow[];
   stats: StockStats;
   suppliers: SupplierOption[];
+  filter: Filter;
+  page: number;
+  total: number;
+  searchParams: Record<string, string | undefined>;
 };
-
-type Filter = "all" | "in_stock" | "faulty" | "returned";
 const FILTER_LABELS: Record<Filter, string> = {
   all: "All",
   in_stock: "In stock",
@@ -70,8 +77,7 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
   );
 }
 
-export function StockView({ devices, stats, suppliers }: Props) {
-  const [filter, setFilter] = useState<Filter>("all");
+export function StockView({ devices, stats, suppliers, filter, page, total, searchParams }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditDeviceTarget | null>(null);
 
@@ -86,8 +92,6 @@ export function StockView({ devices, stats, suppliers }: Props) {
   }, []);
 
   const handleCloseEdit = useCallback(() => setEditTarget(null), []);
-
-  const filtered = filter === "all" ? devices : devices.filter((d) => d.status === filter);
 
   return (
     <>
@@ -107,9 +111,9 @@ export function StockView({ devices, stats, suppliers }: Props) {
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
           {(Object.keys(FILTER_LABELS) as Filter[]).map((f) => (
-            <button
+            <Link
               key={f}
-              onClick={() => setFilter(f)}
+              href={buildHref("/stock", searchParams, { status: f === "all" ? undefined : f })}
               className={`rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
                 filter === f
                   ? "bg-text-primary font-semibold text-white"
@@ -117,7 +121,7 @@ export function StockView({ devices, stats, suppliers }: Props) {
               }`}
             >
               {FILTER_LABELS[f]}
-            </button>
+            </Link>
           ))}
         </div>
 
@@ -143,7 +147,7 @@ export function StockView({ devices, stats, suppliers }: Props) {
         className="rounded-[20px] border border-border bg-surface"
         style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
-        {filtered.length === 0 ? (
+        {devices.length === 0 ? (
           <EmptyState filter={filter} />
         ) : (
           <table className="w-full">
@@ -160,11 +164,11 @@ export function StockView({ devices, stats, suppliers }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((device, i) => (
+              {devices.map((device, i) => (
                 <tr
                   key={device.id}
                   className={`transition-colors hover:bg-surface-muted ${
-                    i < filtered.length - 1 ? "border-b border-border" : ""
+                    i < devices.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
                   <td className="pl-5 pr-4 py-4">
@@ -208,6 +212,9 @@ export function StockView({ devices, stats, suppliers }: Props) {
               ))}
             </tbody>
           </table>
+        )}
+        {total > 0 && (
+          <Pagination page={page} total={total} label="device" basePath="/stock" searchParams={searchParams} />
         )}
       </div>
     </>

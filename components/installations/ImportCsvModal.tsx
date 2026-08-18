@@ -20,24 +20,10 @@ import {
   parseImportFile,
   type ParsedFile,
 } from "@/lib/csv-import";
-import { MAX_IMPORT_ROWS, installationImportRowSchema } from "@/lib/validations/import";
-
-type RowIssue = { line: number; message: string };
+import { MAX_IMPORT_ROWS, describeRowIssues, type RowIssue } from "@/lib/validations/import";
 
 function validateRows(rows: Record<string, string>[]): RowIssue[] {
-  const issues: RowIssue[] = [];
-
-  rows.forEach((row, index) => {
-    const parsed = installationImportRowSchema.safeParse(row);
-    if (!parsed.success) {
-      issues.push({
-        line: index + 2,
-        message: parsed.error.issues[0]?.message ?? "Row could not be read",
-      });
-    }
-  });
-
-  return issues;
+  return rows.flatMap((row, index) => describeRowIssues(row, index + 2));
 }
 
 type Props = {
@@ -119,6 +105,8 @@ export function ImportCsvModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
+  // A row can break in several places at once, so problems are counted by line
+  const badRowCount = new Set(rowIssues.map((i) => i.line)).size;
   const tooManyRows = (parsed?.rows.length ?? 0) > MAX_IMPORT_ROWS;
   const hasMissingHeaders = (parsed?.missingHeaders.length ?? 0) > 0;
   const noRows = parsed !== null && parsed.rows.length === 0;
@@ -226,7 +214,7 @@ export function ImportCsvModal({ open, onClose }: Props) {
                     {parsed && (
                       <p className="text-[12.5px] text-text-secondary">
                         {parsed.rows.length} row{parsed.rows.length === 1 ? "" : "s"} found
-                        {rowIssues.length > 0 && ` · ${rowIssues.length} with problems`}
+                        {badRowCount > 0 && ` · ${badRowCount} with problems`}
                       </p>
                     )}
                   </div>
@@ -269,32 +257,7 @@ export function ImportCsvModal({ open, onClose }: Props) {
             )}
 
             {!plan && !hasMissingHeaders && rowIssues.length > 0 && (
-              <div className="overflow-hidden rounded-[12px] border border-warning">
-                <div className="border-b border-border bg-warning-light px-4 py-2.5">
-                  <p className="text-[12.5px] font-semibold text-warning-foreground">
-                    {rowIssues.length} row{rowIssues.length === 1 ? "" : "s"} will be skipped — fix
-                    them in the file and upload again, or import the rest now
-                  </p>
-                </div>
-                <div className="max-h-44 overflow-y-auto">
-                  {rowIssues.slice(0, 50).map((issue) => (
-                    <div
-                      key={issue.line}
-                      className="flex gap-3 border-b border-border-light px-4 py-2 last:border-b-0"
-                    >
-                      <span className="flex-none font-mono text-[12.5px] font-medium text-text-muted">
-                        Line {issue.line}
-                      </span>
-                      <span className="text-[13px] text-text-secondary">{issue.message}</span>
-                    </div>
-                  ))}
-                  {rowIssues.length > 50 && (
-                    <div className="px-4 py-2 text-[12.5px] text-text-muted">
-                      …and {rowIssues.length - 50} more
-                    </div>
-                  )}
-                </div>
-              </div>
+              <RowIssueList issues={rowIssues} />
             )}
 
             {!plan && parsed && !hasMissingHeaders && !noRows && (
@@ -326,16 +289,16 @@ export function ImportCsvModal({ open, onClose }: Props) {
                   <p className="mb-3 text-[12.5px] text-text-secondary">
                     Column order does not matter and extra columns are ignored — only the headings
                     need to match, and the format in brackets after a heading is ignored too.
-                    Amounts may include commas. Mobile numbers must be 11 digits.
+                    Amounts may include commas. Phone and GSM numbers are kept exactly as written,
+                    any length.
                   </p>
                   <p className="mb-3 text-[12.5px] text-text-secondary">
                     <span className="font-semibold text-text-primary">Dates:</span> write{" "}
                     <span className="font-mono text-text-primary">2026-01-15</span> (year, month,
-                    day). <span className="font-mono text-text-primary">15/01/2026</span> works too
-                    — the day always comes first, so{" "}
-                    <span className="font-mono text-text-primary">01/15/2026</span> is rejected. If
-                    Excel reformats the column, set it to Text before typing, or check that the day
-                    is written first before saving.
+                    day). <span className="font-mono text-text-primary">15/01/2026</span> and{" "}
+                    <span className="font-mono text-text-primary">01/15/2026</span> both work —
+                    Excel silently rewrites typed dates into its own order when the file is saved,
+                    so whichever reading is a real date is used.
                   </p>
                   <ImportColumnGuide columns={INSTALLATION_COLUMNS} />
                 </div>
@@ -406,6 +369,69 @@ function Notice({ tone, children }: { tone: "error" | "warning"; children: React
   );
 }
 
+/* ─── Row problems ─────────────────────────────────────── */
+
+const ISSUE_ROW_LIMIT = 30;
+
+/**
+ * Every problem the file has, grouped by the line it is on and naming the
+ * column, so the sheet can be corrected without guessing which cell was meant.
+ */
+function RowIssueList({ issues }: { issues: RowIssue[] }) {
+  const byLine = new Map<number, RowIssue[]>();
+  for (const issue of issues) {
+    byLine.set(issue.line, [...(byLine.get(issue.line) ?? []), issue]);
+  }
+
+  const lines = [...byLine.keys()].sort((a, b) => a - b);
+  const shown = lines.slice(0, ISSUE_ROW_LIMIT);
+
+  return (
+    <div className="overflow-hidden rounded-[12px] border border-warning">
+      <div className="border-b border-border bg-warning-light px-4 py-3">
+        <p className="text-[12.5px] font-semibold text-warning-foreground">
+          {lines.length} row{lines.length === 1 ? "" : "s"} will be skipped
+        </p>
+        <p className="mt-0.5 text-[12px] text-warning-foreground/80">
+          Each problem is listed with the column it is in. Fix them in the spreadsheet and upload
+          again, or import the remaining rows now.
+        </p>
+      </div>
+
+      <div className="max-h-72 overflow-y-auto overscroll-contain">
+        {shown.map((line) => (
+          <div key={line} className="border-b border-border-light px-4 py-2.5 last:border-b-0">
+            <p className="font-mono text-[12px] font-semibold text-text-muted">Line {line}</p>
+            <ul className="mt-1 flex flex-col gap-1">
+              {byLine.get(line)!.map((issue, i) => (
+                <li key={`${issue.column ?? "row"}-${i}`} className="text-[13px] text-text-secondary">
+                  {issue.column && (
+                    <span className="font-semibold text-text-primary">{issue.column}: </span>
+                  )}
+                  {issue.message}
+                  {issue.value !== "" && (
+                    <span className="text-text-muted">
+                      {" — found "}
+                      <span className="font-mono text-text-secondary">{issue.value}</span>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
+        {lines.length > shown.length && (
+          <div className="px-4 py-2 text-[12.5px] text-text-muted">
+            …and {lines.length - shown.length} more row
+            {lines.length - shown.length === 1 ? "" : "s"} with problems
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ─── Preview ──────────────────────────────────────────── */
 
 const PREVIEW_ROWS = 5;
@@ -415,7 +441,7 @@ const PREVIEW_KEYS = [
   "installationDate",
   "imeiNo",
   "fmModule",
-  "accountName",
+  "amountPaid",
 ];
 
 function PreviewTable({ rows }: { rows: Record<string, string>[] }) {

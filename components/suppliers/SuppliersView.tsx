@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Truck, Package, CircleDollarSign, Pencil, Trash2, BookOpen, Printer } from "lucide-react";
 import { AddSupplierModal, type SupplierEditTarget } from "./AddSupplierModal";
 import { NewInvoiceModal, type SupplierOption, type DeviceOption } from "./NewInvoiceModal";
@@ -8,6 +9,8 @@ import { PaySupplierModal, type AccountOption, type PayTarget } from "./PaySuppl
 import { SupplierLedgerModal } from "./SupplierLedgerModal";
 import { deleteSupplier } from "@/actions/suppliers";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { Pagination } from "@/components/ui/Pagination";
+import { buildHref } from "@/lib/pagination";
 
 export type SupplierRow = {
   id: string;
@@ -48,6 +51,12 @@ type Props = {
   accounts: AccountOption[];
   supplierOptions: SupplierOption[];
   deviceOptions: DeviceOption[];
+  tab: Tab;
+  supplierPage: number;
+  supplierTotal: number;
+  invoicePage: number;
+  invoiceTotal: number;
+  searchParams: Record<string, string | undefined>;
 };
 
 function fmtRs(v: number | string | null) {
@@ -100,8 +109,13 @@ export function SuppliersView({
   accounts,
   supplierOptions,
   deviceOptions,
+  tab,
+  supplierPage,
+  supplierTotal,
+  invoicePage,
+  invoiceTotal,
+  searchParams,
 }: Props) {
-  const [tab, setTab] = useState<Tab>("suppliers");
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SupplierEditTarget | null>(null);
   const [payTarget, setPayTarget] = useState<PayTarget | null>(null);
@@ -157,9 +171,11 @@ export function SuppliersView({
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
           {(["suppliers", "invoices"] as Tab[]).map((t) => (
-            <button
+            <Link
               key={t}
-              onClick={() => setTab(t)}
+              // Switching tabs never touches either table's own page number —
+              // each is paginated independently
+              href={buildHref("/suppliers", searchParams, { tab: t === "suppliers" ? undefined : t, page: undefined })}
               className={`rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
                 tab === t
                   ? "bg-text-primary font-semibold text-white"
@@ -167,8 +183,8 @@ export function SuppliersView({
               }`}
             >
               {t === "suppliers" ? "Suppliers" : "Purchase Invoices"}
-              <CountBadge count={t === "suppliers" ? suppliers.length : invoices.length} />
-            </button>
+              <CountBadge count={t === "suppliers" ? supplierTotal : invoiceTotal} />
+            </Link>
           ))}
         </div>
 
@@ -223,6 +239,9 @@ export function SuppliersView({
         {tab === "suppliers" ? (
           <SuppliersTable
             rows={suppliers}
+            page={supplierPage}
+            total={supplierTotal}
+            searchParams={searchParams}
             onEdit={(s) =>
               setEditTarget({
                 id: s.id,
@@ -241,7 +260,13 @@ export function SuppliersView({
             onLedger={(s) => setLedgerTarget({ id: s.id, name: s.name })}
           />
         ) : (
-          <InvoicesTable rows={invoices} onNewInvoice={() => openInvoice(null)} />
+          <InvoicesTable
+            rows={invoices}
+            page={invoicePage}
+            total={invoiceTotal}
+            searchParams={searchParams}
+            onNewInvoice={() => openInvoice(null)}
+          />
         )}
       </div>
     </>
@@ -252,12 +277,18 @@ export function SuppliersView({
 
 function SuppliersTable({
   rows,
+  page,
+  total,
+  searchParams,
   onEdit,
   onPay,
   onInvoice,
   onLedger,
 }: {
   rows: SupplierRow[];
+  page: number;
+  total: number;
+  searchParams: Record<string, string | undefined>;
   onEdit: (s: SupplierRow) => void;
   onPay: (s: SupplierRow) => void;
   onInvoice: (s: SupplierRow) => void;
@@ -397,11 +428,14 @@ function SuppliersTable({
           })}
         </tbody>
       </table>
-      <div className="border-t border-border px-5 py-3">
-        <p className="text-[12px] text-text-muted">
-          Showing {rows.length} {rows.length === 1 ? "supplier" : "suppliers"}
-        </p>
-      </div>
+      <Pagination
+        page={page}
+        total={total}
+        label="supplier"
+        basePath="/suppliers"
+        searchParams={searchParams}
+        paramName="spage"
+      />
     </div>
   );
 }
@@ -410,9 +444,15 @@ function SuppliersTable({
 
 function InvoicesTable({
   rows,
+  page,
+  total,
+  searchParams,
   onNewInvoice,
 }: {
   rows: InvoiceRow[];
+  page: number;
+  total: number;
+  searchParams: Record<string, string | undefined>;
   onNewInvoice: () => void;
 }) {
   if (rows.length === 0) {
@@ -509,11 +549,14 @@ function InvoicesTable({
           })}
         </tbody>
       </table>
-      <div className="border-t border-border px-5 py-3">
-        <p className="text-[12px] text-text-muted">
-          Showing {rows.length} {rows.length === 1 ? "invoice" : "invoices"}
-        </p>
-      </div>
+      <Pagination
+        page={page}
+        total={total}
+        label="invoice"
+        basePath="/suppliers"
+        searchParams={searchParams}
+        paramName="ipage"
+      />
     </div>
   );
 }
