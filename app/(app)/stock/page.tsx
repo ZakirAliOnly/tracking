@@ -2,21 +2,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/PageHeader";
-import {
-  StockView,
-  type DeviceRow,
-  type DeviceStatus,
-  type StockStats,
-} from "@/components/stock/StockView";
+import { StockView, type DeviceRow, type StockStats } from "@/components/stock/StockView";
 import type { SupplierOption } from "@/components/stock/AddDeviceModal";
 import { pageWindow, parsePage } from "@/lib/pagination";
 import type { Prisma } from "@prisma/client";
 
-type Filter = "all" | "in_stock" | "faulty" | "returned";
-const STOCK_STATUSES = ["in_stock", "faulty", "returned"] as const;
-
 type Props = {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
 
 export default async function StockPage({ searchParams }: Props) {
@@ -25,18 +17,13 @@ export default async function StockPage({ searchParams }: Props) {
   const { orgId } = session.user;
   const sp = await searchParams;
 
-  const filter: Filter =
-    sp.status === "in_stock" || sp.status === "faulty" || sp.status === "returned"
-      ? sp.status
-      : "all";
   const page = parsePage(sp.page);
 
-  const where: Prisma.DeviceWhereInput = {
-    orgId,
-    status: filter === "all" ? { in: [...STOCK_STATUSES] } : filter,
-  };
+  // Stock is what is actually on the shelf. A device leaves this list when it
+  // is fitted (status moves to `installed` by stock movement, never by hand)
+  const where: Prisma.DeviceWhereInput = { orgId, status: "in_stock" };
 
-  const [devices, total, statusTotals, suppliers] = await Promise.all([
+  const [devices, total, typeTotals, suppliers] = await Promise.all([
     prisma.device.findMany({
       where,
       include: { supplier: { select: { name: true } } },
@@ -44,13 +31,8 @@ export default async function StockPage({ searchParams }: Props) {
       ...pageWindow(page),
     }),
     prisma.device.count({ where }),
-    // Org-wide totals regardless of which tab/page is active — a groupBy
-    // instead of loading every device row into JS to sum
-    prisma.device.groupBy({
-      by: ["status"],
-      where: { orgId, status: { in: [...STOCK_STATUSES] } },
-      _sum: { quantity: true },
-    }),
+    // Broken down by pool, across the whole org — not just this page
+    prisma.device.groupBy({ by: ["type"], where, _sum: { quantity: true } }),
     prisma.supplier.findMany({
       where: { orgId, status: "active" },
       select: { id: true, name: true },
@@ -58,24 +40,22 @@ export default async function StockPage({ searchParams }: Props) {
     }),
   ]);
 
-  const totalsByStatus = Object.fromEntries(
-    statusTotals.map((s) => [s.status, s._sum.quantity ?? 0])
-  );
+  const byType = Object.fromEntries(typeTotals.map((t) => [t.type, t._sum.quantity ?? 0]));
 
   const stats: StockStats = {
-    inStock: totalsByStatus["in_stock"] ?? 0,
-    faulty: totalsByStatus["faulty"] ?? 0,
-    returned: totalsByStatus["returned"] ?? 0,
+    deviceUnits: byType["device"] ?? 0,
+    simUnits: byType["sim"] ?? 0,
+    lines: total,
   };
 
   const rows: DeviceRow[] = devices.map((d) => ({
     id: d.id,
     fmModule: d.fmModule,
+    type: d.type === "sim" ? "sim" : "device",
     supplierName: d.supplier?.name ?? null,
     quantity: Number(d.quantity) || 0,
     costPrice: d.costPrice?.toString() ?? null,
     salePrice: d.salePrice?.toString() ?? null,
-    status: d.status as DeviceStatus,
   }));
 
   const supplierOptions: SupplierOption[] = suppliers.map((s) => ({
@@ -85,13 +65,12 @@ export default async function StockPage({ searchParams }: Props) {
 
   return (
     <div className="p-6">
-      <PageHeader title="Stock" subtitle="Device and SIM inventory" />
+      <PageHeader title="Stock" subtitle="Devices on hand" />
       <div className="mt-5">
         <StockView
           devices={rows}
           stats={stats}
           suppliers={supplierOptions}
-          filter={filter}
           page={page}
           total={total}
           searchParams={sp}

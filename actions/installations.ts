@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { resolveInstallationAccount } from "@/lib/accounts";
+import { resolvePayingAccount } from "@/lib/accounts";
 import { resolveInstallationDevices } from "@/lib/devices";
 import { resolvePayment } from "@/lib/installation-money";
 import { writeInstallation } from "@/lib/installation-write";
@@ -65,7 +65,12 @@ export async function createInstallations(
 
     const input = parsed.data;
 
-    const account = await resolveInstallationAccount(orgId, input.accountId);
+    const payment = resolvePayment(input);
+
+    // A method is only named when money actually moved: something was paid AND
+    // the job is worth something. A zero-total installation names no account
+    const moneyIn = payment.total > 0 ? payment.amountPaid : 0;
+    const account = await resolvePayingAccount(orgId, input.accountId, moneyIn, "in");
     if (!account.ok) return { success: false, error: account.error };
 
     const devices = await resolveInstallationDevices(
@@ -73,8 +78,6 @@ export async function createInstallations(
       toDeviceLines(input.deviceIds, input.deviceQuantities)
     );
     if (!devices.ok) return { success: false, error: devices.error };
-
-    const payment = resolvePayment(input);
 
     // Resolved by name, the same rule the CSV import uses — no match creates one
     const existing = await prisma.customer.findFirst({
@@ -144,6 +147,101 @@ export async function createInstallations(
  * not the rule. Paying the balance off exactly is what flips `received`, using
  * the same `amountPaid >= payable` test the entry forms use.
  */
+export type SaleSearchResult = {
+  id: string;
+  registrationNo: string;
+  customerName: string;
+  amount: string;
+  simPayment: string;
+  devicePayment: string;
+};
+
+/** Registration-number lookup that feeds the Sales Report edit modal's dropdown. */
+export async function searchInstallationsByReg(query: string): Promise<SaleSearchResult[]> {
+  const session = await auth();
+  if (!session) return [];
+  const { orgId } = session.user;
+
+  const q = query.trim();
+  if (!q) return [];
+
+  const rows = await prisma.installation.findMany({
+    where: { orgId, vehicle: { registrationNo: { contains: q, mode: "insensitive" } } },
+    select: {
+      id: true,
+      installationPay: true,
+      simPayment: true,
+      devicePayment: true,
+      customer: { select: { name: true } },
+      vehicle: { select: { registrationNo: true } },
+    },
+    orderBy: { installationDate: "desc" },
+    take: 10,
+  });
+
+  return rows.map((r) => ({
+    id: r.id,
+    registrationNo: r.vehicle.registrationNo,
+    customerName: r.customer.name,
+    amount: r.installationPay.toString(),
+    simPayment: r.simPayment.toString(),
+    devicePayment: r.devicePayment.toString(),
+  }));
+}
+
+/**
+ * Overwrites an installation's Amount / Sim / Device figures directly from the
+ * Sales Report's edit modal. `totalAmount` is a generated column, so it and
+ * `netPayment`/`otherAmount` are left untouched — this only ever touches the
+ * three fields the Sales Report itself shows and computes Total Sale from.
+ */
+export async function updateSaleAmounts(
+  _prevState: InstallationActionState,
+  formData: FormData
+): Promise<InstallationActionState> {
+  try {
+    const session = await auth();
+    if (!session) return { success: false, error: "Unauthorized" };
+    const { orgId } = session.user;
+
+    const id = String(formData.get("installationId") ?? "");
+    if (!id) return { success: false, error: "Select an installation first." };
+
+    const parseAmount = (name: string, label: string) => {
+      const raw = String(formData.get(name) ?? "").replace(/[,\s]/g, "");
+      if (raw === "") return 0;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) return null;
+      return n;
+    };
+
+    const amount = parseAmount("amount", "Amount");
+    const simPayment = parseAmount("simPayment", "Sim");
+    const devicePayment = parseAmount("devicePayment", "Device");
+    if (amount === null || simPayment === null || devicePayment === null) {
+      return { success: false, error: "Enter valid, non-negative amounts." };
+    }
+
+    const installation = await prisma.installation.findFirst({
+      where: { id, orgId },
+      select: { id: true },
+    });
+    if (!installation) return { success: false, error: "That installation was not found." };
+
+    await prisma.installation.update({
+      where: { id: installation.id },
+      data: { installationPay: amount, simPayment, devicePayment },
+    });
+
+    revalidatePath("/sales-report");
+    revalidatePath("/installations");
+    return { success: true };
+  } catch (error) {
+    console.error("[actions/installations/sale-amounts]", error);
+    return { success: false, error: "Failed to update the sale. Please try again." };
+  }
+}
+
 export async function payInstallationBalance(
   _prevState: InstallationActionState,
   formData: FormData

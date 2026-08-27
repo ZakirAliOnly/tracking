@@ -19,6 +19,7 @@ export async function addDevice(
 
     const parsed = addDeviceSchema.safeParse({
       fmModule: formData.get("fmModule"),
+      type: formData.get("type"),
       supplierId: formData.get("supplierId") || null,
       openingStock: formData.get("openingStock") || undefined,
       costPrice: formData.get("costPrice") || undefined,
@@ -30,26 +31,48 @@ export async function addDevice(
     }
 
     const d = parsed.data;
-    const id = randomUUID();
     const quantity = d.openingStock ? parseInt(d.openingStock, 10) : 0;
     const costPrice = d.costPrice ? parseFloat(d.costPrice) : null;
     const salePrice = d.salePrice ? parseFloat(d.salePrice) : null;
     const supplierId = d.supplierId || null;
 
-    await prisma.$executeRaw`
-      INSERT INTO devices (id, org_id, fm_module, supplier_id, quantity, cost_price, sale_price, status, created_at)
-      VALUES (
-        ${id},
-        ${orgId},
-        ${d.fmModule},
-        ${supplierId},
-        ${quantity},
-        ${costPrice},
-        ${salePrice},
-        'in_stock',
-        NOW()
-      )
-    `;
+    // There is exactly one Device pool and one Sim pool per org — adding a
+    // second stock line of the same type tops that pool up rather than
+    // splitting it, the same bulk line CSV import and the entry forms draw from
+    const existing = await prisma.device.findFirst({
+      where: { orgId, type: d.type, imeiNo: null },
+      select: { id: true },
+    });
+
+    if (existing) {
+      await prisma.$executeRaw`
+        UPDATE devices
+        SET
+          quantity = quantity + ${quantity},
+          cost_price = COALESCE(${costPrice}, cost_price),
+          sale_price = COALESCE(${salePrice}, sale_price),
+          supplier_id = COALESCE(${supplierId}, supplier_id)
+        WHERE id = ${existing.id}
+          AND org_id = ${orgId}
+      `;
+    } else {
+      const id = randomUUID();
+      await prisma.$executeRaw`
+        INSERT INTO devices (id, org_id, type, fm_module, supplier_id, quantity, cost_price, sale_price, status, created_at)
+        VALUES (
+          ${id},
+          ${orgId},
+          ${d.type},
+          ${d.fmModule},
+          ${supplierId},
+          ${quantity},
+          ${costPrice},
+          ${salePrice},
+          'in_stock',
+          NOW()
+        )
+      `;
+    }
 
     revalidatePath("/stock");
     return { success: true };
@@ -72,7 +95,6 @@ export async function updateDevice(
       id: formData.get("id"),
       costPrice: formData.get("costPrice") || undefined,
       salePrice: formData.get("salePrice") || undefined,
-      markFaulty: formData.get("markFaulty") || undefined,
     });
 
     if (!parsed.success) {
@@ -88,14 +110,14 @@ export async function updateDevice(
 
     const costPrice = d.costPrice !== undefined ? parseFloat(d.costPrice) : existing.costPrice;
     const salePrice = d.salePrice !== undefined ? parseFloat(d.salePrice) : existing.salePrice;
-    const newStatus = d.markFaulty === "true" ? "faulty" : existing.status;
 
+    // Editing a device is a price change only — `status` is left alone, since
+    // it is moved by stock movement (fitting a device) rather than by hand
     await prisma.$executeRaw`
       UPDATE devices
       SET
         cost_price = ${costPrice},
-        sale_price = ${salePrice},
-        status = ${newStatus}
+        sale_price = ${salePrice}
       WHERE id = ${d.id}
         AND org_id = ${orgId}
     `;

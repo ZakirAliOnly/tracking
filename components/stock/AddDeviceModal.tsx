@@ -26,7 +26,7 @@ export function AddDeviceModal({ open, onClose, suppliers }: Props) {
   useActionToast(state?.error);
 
   const [formKey, setFormKey] = useState(0);
-  const firstRef = useRef<HTMLInputElement>(null);
+  const firstRef = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     if (state?.success) {
@@ -76,13 +76,36 @@ export function AddDeviceModal({ open, onClose, suppliers }: Props) {
             className="flex flex-1 flex-col overflow-y-auto"
           >
             <div className="flex flex-col gap-5 px-6 py-6">
+            {/* Type */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-medium text-text-primary">
+                Type <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  ref={firstRef}
+                  name="type"
+                  defaultValue="device"
+                  required
+                  className={INPUT + " w-full appearance-none pl-3 pr-8"}
+                >
+                  <option value="device">Device</option>
+                  <option value="sim">Sim</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              </div>
+              <p className="text-[12px] text-text-muted">
+                Every org has one Device pool and one Sim pool — this adds to
+                whichever one already exists rather than starting a new one
+              </p>
+            </div>
+
             {/* Device name */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[13px] font-medium text-text-primary">
                 Device name <span className="text-error">*</span>
               </label>
               <input
-                ref={firstRef}
                 name="fmModule"
                 type="text"
                 placeholder="e.g. AOT120, GT06N"

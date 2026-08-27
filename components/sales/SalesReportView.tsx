@@ -4,25 +4,28 @@ import Link from "next/link";
 import { BarChart2, Coins, Signal, TrendingUp, X } from "lucide-react";
 import { Pagination } from "@/components/ui/Pagination";
 import { buildHref } from "@/lib/pagination";
+import { EditSaleTrigger } from "@/components/sales/EditSaleModal";
 
 export type SalesRow = {
   id: string;
   customerName: string;
   registrationNo: string;
   installationDate: string;
+  amount: string;
   simPayment: string;
   devicePayment: string;
-  /** Total less SIM and device — worked out on the server, not stored. */
-  otherAmount: string;
+  /** What is left of Amount once Sim and Device are taken out — can go negative. */
+  totalSale: string;
 };
 
 type Props = {
   rows: SalesRow[];
   page: number;
   total: number;
+  totalAmount: number;
   totalSim: number;
   totalDevice: number;
-  totalOther: number;
+  totalSale: number;
   from: string;
   to: string;
   searchParams: Record<string, string | undefined>;
@@ -47,13 +50,19 @@ function fmtCell(v: string) {
   return parseFloat(v) === 0 ? "—" : fmtRs(v);
 }
 
+/** Sim + Device can exceed Amount on a row, so Total Sale can go negative. */
+function totalSaleClass(v: string) {
+  return parseFloat(v) < 0 ? "text-error" : "text-success-foreground";
+}
+
 export function SalesReportView({
   rows,
   page,
   total,
+  totalAmount,
   totalSim,
   totalDevice,
-  totalOther,
+  totalSale,
   from,
   to,
   searchParams,
@@ -62,46 +71,50 @@ export function SalesReportView({
 
   return (
     <>
-      {/* KPIs — Others leads, since that is the figure the report exists for */}
+      {/* KPIs — Total Sale leads, since that is the figure the report exists for */}
       <div className="mb-5 grid grid-cols-4 gap-4">
+        <Kpi icon={Coins} label="Amount total" value={fmtRs(totalAmount)} />
+        <Kpi icon={Signal} label="Sim total" value={fmtRs(totalSim)} />
+        <Kpi icon={BarChart2} label="Device total" value={fmtRs(totalDevice)} />
         <Kpi
           icon={TrendingUp}
-          label="Others"
-          value={fmtRs(totalOther)}
-          hint="Total less SIM and device"
-          accent
+          label="Total Sale"
+          value={fmtRs(totalSale)}
+          hint="Amount less Sim and Device"
+          accent={totalSale < 0 ? "error" : "success"}
         />
-        <Kpi icon={Signal} label="SIM total" value={fmtRs(totalSim)} />
-        <Kpi icon={Coins} label="Device total" value={fmtRs(totalDevice)} />
-        <Kpi icon={BarChart2} label="Installations" value={String(total)} />
       </div>
 
       {/* Date range — the same plain GET form the Renewals page uses */}
-      <form method="GET" action="/sales-report" className="mb-5 flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-medium uppercase tracking-wider text-text-muted">
-          Installed between
-        </span>
-        <input type="date" name="from" defaultValue={from} aria-label="Installed from" className={DATE_INPUT} />
-        <span className="text-[13px] text-text-muted">and</span>
-        <input type="date" name="to" defaultValue={to} aria-label="Installed to" className={DATE_INPUT} />
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <form method="GET" action="/sales-report" className="flex flex-wrap items-center gap-2">
+          <span className="text-[12px] font-medium uppercase tracking-wider text-text-muted">
+            Installed between
+          </span>
+          <input type="date" name="from" defaultValue={from} aria-label="Installed from" className={DATE_INPUT} />
+          <span className="text-[13px] text-text-muted">and</span>
+          <input type="date" name="to" defaultValue={to} aria-label="Installed to" className={DATE_INPUT} />
 
-        <button
-          type="submit"
-          className="flex h-9 items-center rounded-[9px] border border-border bg-surface px-3.5 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
-        >
-          Apply
-        </button>
-
-        {ranged && (
-          <Link
-            href={buildHref("/sales-report", searchParams, { from: undefined, to: undefined })}
-            className="flex h-9 items-center gap-1 rounded-[9px] px-2.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text-primary"
+          <button
+            type="submit"
+            className="flex h-9 items-center rounded-[9px] border border-border bg-surface px-3.5 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
           >
-            <X className="h-3.5 w-3.5" />
-            Clear
-          </Link>
-        )}
-      </form>
+            Apply
+          </button>
+
+          {ranged && (
+            <Link
+              href={buildHref("/sales-report", searchParams, { from: undefined, to: undefined })}
+              className="flex h-9 items-center gap-1 rounded-[9px] px-2.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text-primary"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Link>
+          )}
+        </form>
+
+        <EditSaleTrigger />
+      </div>
 
       {/* Table */}
       <div
@@ -114,7 +127,7 @@ export function SalesReportView({
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                {["Client", "Reg No", "Install Date", "Sim", "Device", "Other"].map((h) => (
+                {["Client", "Reg No", "Install Date", "Amount", "Sim", "Device", "Total Sale"].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted first:pl-5"
@@ -149,6 +162,11 @@ export function SalesReportView({
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="text-[13px] font-medium text-text-primary tabular-nums">
+                      {fmtCell(row.amount)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <span className="text-[13px] font-medium text-text-primary tabular-nums">
                       {fmtCell(row.simPayment)}
                     </span>
                   </td>
@@ -158,8 +176,8 @@ export function SalesReportView({
                     </span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className="text-[13px] font-semibold text-success-foreground tabular-nums">
-                      {fmtCell(row.otherAmount)}
+                    <span className={`text-[13px] font-semibold tabular-nums ${totalSaleClass(row.totalSale)}`}>
+                      {fmtCell(row.totalSale)}
                     </span>
                   </td>
                 </tr>
@@ -194,20 +212,21 @@ function Kpi({
   label: string;
   value: string;
   hint?: string;
-  accent?: boolean;
+  accent?: "success" | "error";
 }) {
+  const accentClass = accent === "error" ? "text-error" : "text-success-foreground";
   return (
     <div
       className="flex flex-col gap-1 rounded-[16px] border border-border bg-surface px-5 py-4"
       style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 4px 16px -8px rgba(26,20,20,0.10)" }}
     >
       <div className="flex items-center gap-2">
-        <Icon className={`h-4 w-4 ${accent ? "text-success-foreground" : "text-text-muted"}`} />
+        <Icon className={`h-4 w-4 ${accent ? accentClass : "text-text-muted"}`} />
         <p className="text-[12.5px] font-medium text-text-secondary">{label}</p>
       </div>
       <p
         className={`font-display text-[26px] font-bold leading-8 tabular-nums ${
-          accent ? "text-success-foreground" : "text-text-primary"
+          accent ? accentClass : "text-text-primary"
         }`}
       >
         {value}

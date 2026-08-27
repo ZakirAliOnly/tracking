@@ -56,7 +56,6 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
   const [deviceLines, setDeviceLines] = useState<DeviceLineDraft[]>([newDeviceLine(1)]);
   // null means the Amount box is still following the devices
   const [amountOverride, setAmountOverride] = useState<string | null>(null);
-  const [simPayment, setSimPayment] = useState("");
   const [discountMode, setDiscountMode] = useState<DiscountMode>("fixed");
   const [discountValue, setDiscountValue] = useState("");
   const [amountPaid, setAmountPaid] = useState("");
@@ -80,11 +79,17 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
   // figures stored
   const money = resolvePayment({
     amount: parseFloat(amountValue) || 0,
-    simPayment: parseFloat(simPayment) || 0,
+    // SIM and device charges are not collected on this form any more; the
+    // Amount carries the whole job
+    simPayment: 0,
     discountMode,
     discountValue: parseFloat(discountValue) || 0,
     amountPaid: parseFloat(amountPaid) || 0,
   });
+
+  // Mirrors the Server Action: a method is only needed when money actually
+  // moved — something paid, against a job worth something
+  const hasPaid = money.total > 0 && money.amountPaid > 0;
 
   function reset() {
     setCustomerName("");
@@ -93,7 +98,6 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
     setInstallationDate(todayStr());
     setDeviceLines([newDeviceLine(1)]);
     setAmountOverride(null);
-    setSimPayment("");
     setDiscountMode("fixed");
     setDiscountValue("");
     setAmountPaid("");
@@ -239,15 +243,6 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                 )}
               </div>
 
-              {/* Phone */}
-              <div className="flex flex-col gap-1.5">
-                <label className={FIELD_LABEL}>Phone</label>
-                <PhoneInput name="phone" className={MONO_INPUT} />
-                <p className="text-[12px] text-text-muted">
-                  11 digits, or leave blank — an existing customer's phone is left as it is
-                </p>
-              </div>
-
               {/* Registration No + date */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -287,62 +282,36 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
               />
 
               {/* Money */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className={FIELD_LABEL}>Amount</label>
-                  <input
-                    name="amount"
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    value={amountValue}
-                    onChange={(e) => setAmountOverride(e.target.value)}
-                    className={INPUT}
-                  />
-                  <p className="text-[12px] text-text-muted">
-                    {amountOverride === null
-                      ? "From the devices — you can change it"
-                      : "Changed by hand"}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className={FIELD_LABEL}>Sim</label>
-                  <input
-                    name="simPayment"
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    value={simPayment}
-                    onChange={(e) => setSimPayment(e.target.value)}
-                    className={INPUT}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className={FIELD_LABEL}>Amount Device</label>
-                  <input
-                    name="devicePayment"
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    className={INPUT}
-                  />
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className={FIELD_LABEL}>Amount</label>
+                <input
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="0"
+                  value={amountValue}
+                  onChange={(e) => setAmountOverride(e.target.value)}
+                  className={INPUT}
+                />
+                <p className="text-[12px] text-text-muted">
+                  {amountOverride === null
+                    ? "From the devices — you can change it"
+                    : "Changed by hand"}
+                </p>
               </div>
 
-              {/* Payment method */}
+              {/* Payment method — only required once something has been paid */}
               {accounts.length > 0 && (
                 <div className="flex flex-col gap-1.5">
                   <label className={FIELD_LABEL}>
-                    Payment Method <span className="text-error">*</span>
+                    Payment Method {hasPaid && <span className="text-error">*</span>}
                   </label>
                   <div className="relative">
-                    <select name="accountId" defaultValue="" required className={SELECT}>
-                      <option value="">Choose a payment method</option>
+                    <select name="accountId" defaultValue="" required={hasPaid} className={SELECT}>
+                      <option value="">
+                        {hasPaid ? "Choose a payment method" : "No payment method"}
+                      </option>
                       {accounts.map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.name}
@@ -351,16 +320,13 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                   </div>
-                  <p className="text-[12px] text-text-muted">Where this money landed</p>
+                  <p className="text-[12px] text-text-muted">
+                    {hasPaid
+                      ? "Where this money landed"
+                      : "Needed once an Amount Paid is entered"}
+                  </p>
                 </div>
               )}
-
-              {/* Sim number */}
-              <div className="flex flex-col gap-1.5">
-                <label className={FIELD_LABEL}>Sim Number</label>
-                <PhoneInput name="simNo" className={MONO_INPUT} />
-                <p className="text-[12px] text-text-muted">11 digits, or leave blank</p>
-              </div>
 
               {/* Discount + what has been paid */}
               <div className="grid grid-cols-2 gap-4">

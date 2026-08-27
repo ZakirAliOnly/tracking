@@ -77,8 +77,9 @@ export default async function SuppliersPage({ searchParams }: Props) {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    // Stock lines a purchase invoice can add units to
     prisma.device.findMany({
-      where: { orgId, status: { in: ["in_stock", "faulty", "returned"] } },
+      where: { orgId, status: "in_stock" },
       select: { id: true, fmModule: true, costPrice: true, salePrice: true },
       orderBy: { fmModule: "asc" },
     }),

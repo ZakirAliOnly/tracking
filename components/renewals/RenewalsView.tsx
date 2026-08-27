@@ -244,7 +244,7 @@ export function RenewalsView({
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                {["Client","Reg No","Due Date","Amount","SIM & Osting","Net","Other","Account","Status",""].map((h) => (
+                {["Client","Reg No","Due Date","Amount","SIM & Osting","Other","Account","Status",""].map((h) => (
                   <th key={h} className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted first:pl-5">
                     {h}
                   </th>
@@ -300,11 +300,6 @@ export function RenewalsView({
                   {/* SIM & Osting */}
                   <td className="px-4 py-4">
                     <span className="text-[13px] text-text-secondary">{fmtRs(row.simOsting)}</span>
-                  </td>
-
-                  {/* Net */}
-                  <td className="px-4 py-4">
-                    <span className="text-[13px] text-text-secondary">{fmtRs(row.net)}</span>
                   </td>
 
                   {/* Other */}

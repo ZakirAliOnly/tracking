@@ -96,9 +96,14 @@ export function RecordRenewalModal({
     };
   })();
 
+  const [amount, setAmount] = useState("");
+  const [simOsting, setSimOsting] = useState("");
+
   function reset() {
     setSelectedCustomer("");
     setSelectedInstId("");
+    setAmount("");
+    setSimOsting("");
   }
 
   useEffect(() => {
@@ -120,6 +125,14 @@ export function RecordRenewalModal({
   useEffect(() => {
     setSelectedInstId("");
   }, [selectedCustomer]);
+
+  // Amount/SIM & Osting follow whichever installation is resolved, so Other
+  // (computed from them) starts correct rather than stale from the last pick
+  useEffect(() => {
+    setAmount(resolved?.amount ?? "");
+    setSimOsting(resolved?.simOsting ?? "0");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolved?.installationId]);
 
   if (!open) return null;
 
@@ -257,17 +270,16 @@ export function RecordRenewalModal({
             {accounts.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-text-primary">
-                  Payment Method <span className="text-error">*</span>
+                  Payment Method
                 </label>
                 <div className="relative">
                   <select
                     name="accountId"
                     defaultValue={resolved?.accountId ?? ""}
                     key={`acct-${resolved?.installationId ?? "none"}`}
-                    required
                     className={SELECT}
                   >
-                    <option value="" disabled>Choose a payment method</option>
+                    <option value="">Cash (default)</option>
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
@@ -289,54 +301,41 @@ export function RecordRenewalModal({
                 type="number"
                 min="0"
                 placeholder="0"
-                defaultValue={resolved?.amount ?? ""}
-                key={`amt-${resolved?.installationId ?? "none"}`}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 required
                 className={INPUT}
               />
             </div>
 
-            {/* SIM & Osting + Net side by side */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-text-primary">SIM &amp; Osting</label>
-                <input
-                  name="simOsting"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  defaultValue={resolved?.simOsting ?? "0"}
-                  key={`sim-${resolved?.installationId ?? "none"}`}
-                  className={INPUT}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-text-primary">Net</label>
-                <input
-                  name="net"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  defaultValue={resolved?.net ?? "0"}
-                  key={`net-${resolved?.installationId ?? "none"}`}
-                  className={INPUT}
-                />
-              </div>
+            {/* SIM & Osting */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-medium text-text-primary">SIM &amp; Osting</label>
+              <input
+                name="simOsting"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={simOsting}
+                onChange={(e) => setSimOsting(e.target.value)}
+                className={INPUT}
+              />
             </div>
+            <input type="hidden" name="net" value="0" />
+            <input
+              type="hidden"
+              name="other"
+              value={String((parseFloat(amount) || 0) - (parseFloat(simOsting) || 0))}
+            />
 
             {/* Other */}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-text-primary">Other</label>
-                <input
-                  name="other"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  defaultValue="0"
-                  key={`other-${resolved?.installationId ?? "none"}`}
-                  className={INPUT}
-                />
+                <div className={`${INPUT} flex items-center bg-surface-muted text-text-secondary`}>
+                  {(parseFloat(amount) || 0) - (parseFloat(simOsting) || 0)}
+                </div>
+                <p className="text-[11.5px] text-text-muted">Amount less SIM &amp; Osting</p>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-text-primary">Other note</label>

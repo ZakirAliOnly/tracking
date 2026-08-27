@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
-import { resolveInstallationAccount } from "@/lib/accounts";
+import { resolvePayingAccount } from "@/lib/accounts";
 import { resolveInstallationDevices, type DeviceLine } from "@/lib/devices";
 import { normalizeRegistration } from "@/lib/import-plan";
 import { resolvePayment } from "@/lib/installation-money";
@@ -93,7 +93,11 @@ export async function upsertCustomer(
     const reservedDevices = new Map<string, number>();
 
     for (const inst of parsedInstallations) {
-      const account = await resolveInstallationAccount(orgId, inst.accountId);
+      // Same rule as the standalone form: a method is only named once
+      // something has actually been paid
+      const blockPayment = resolvePayment(inst);
+      const moneyIn = blockPayment.total > 0 ? blockPayment.amountPaid : 0;
+      const account = await resolvePayingAccount(orgId, inst.accountId, moneyIn, "in");
       if (!account.ok) return { success: false, error: account.error };
 
       const lines = toDeviceLines(inst.deviceIds, inst.deviceQuantities);

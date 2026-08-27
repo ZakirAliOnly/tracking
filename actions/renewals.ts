@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { resolveInstallationAccount } from "@/lib/accounts";
+import { resolveRenewalAccount } from "@/lib/accounts";
 import { recordRenewalSchema } from "@/lib/validations/renewal";
 
 export type RenewalActionState = { success: boolean; error?: string } | null;
@@ -41,7 +41,7 @@ export async function recordRenewal(
     });
     if (!installation) return { success: false, error: "Installation not found." };
 
-    const account = await resolveInstallationAccount(orgId, d.accountId || null);
+    const account = await resolveRenewalAccount(orgId, d.accountId || null);
     if (!account.ok) return { success: false, error: account.error };
 
     const renewalDate = new Date(d.nextRenewalDate);

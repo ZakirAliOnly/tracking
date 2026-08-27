@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { updateDevice, type DeviceActionState } from "@/actions/devices";
 import { useActionToast } from "@/components/ui/ToastProvider";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -9,9 +9,9 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 export type EditDeviceTarget = {
   id: string;
   fmModule: string | null;
+  type: "device" | "sim";
   costPrice: string | null;
   salePrice: string | null;
-  status: string;
 };
 
 type Props = {
@@ -92,59 +92,6 @@ function PriceForm({
   );
 }
 
-function FaultyForm({
-  device,
-  onSuccess,
-}: {
-  device: EditDeviceTarget;
-  onSuccess: () => void;
-}) {
-  const [state, formAction] = useActionState<DeviceActionState, FormData>(
-    updateDevice,
-    null
-  );
-
-  useEffect(() => {
-    if (state?.success) onSuccess();
-  }, [state?.success, onSuccess]);
-
-  const isAlreadyFaulty = device.status === "faulty";
-
-  return (
-    <div className="rounded-[12px] border border-error/30 bg-error-light/60 p-4">
-      <div className="mb-3 flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-error" />
-        <div>
-          <p className="text-[13px] font-semibold text-text-primary">Mark as faulty</p>
-          <p className="mt-0.5 text-[12px] text-text-secondary">
-            This device will be removed from stock and flagged as faulty.
-          </p>
-        </div>
-      </div>
-
-      {isAlreadyFaulty ? (
-        <p className="text-[13px] font-semibold text-error-foreground">Already marked as faulty</p>
-      ) : (
-        <form action={formAction}>
-          <input type="hidden" name="id" value={device.id} />
-          <input type="hidden" name="markFaulty" value="true" />
-          <SubmitButton
-            pendingLabel="Marking…"
-            spinnerClassName="h-3.5 w-3.5"
-            className="h-9 w-full rounded-[9px] bg-error text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            Mark as faulty
-          </SubmitButton>
-
-          {state?.error && !state.success && (
-            <p className="mt-2 text-[12px] font-medium text-error-foreground">{state.error}</p>
-          )}
-        </form>
-      )}
-    </div>
-  );
-}
-
 export function EditDeviceModal({ open, onClose, device }: Props) {
   if (!open) return null;
 
@@ -165,6 +112,11 @@ export function EditDeviceModal({ open, onClose, device }: Props) {
               </h2>
               <p className="mt-0.5 text-[13px] text-text-secondary">
                 {device?.fmModule ?? "—"}
+                {device && (
+                  <span className="ml-1.5 text-text-muted">
+                    · {device.type === "sim" ? "Sim" : "Device"} pool
+                  </span>
+                )}
               </p>
             </div>
             <button
@@ -179,8 +131,6 @@ export function EditDeviceModal({ open, onClose, device }: Props) {
           {device && (
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-6">
               <PriceForm device={device} onSuccess={onClose} />
-              <div className="border-t border-border" />
-              <FaultyForm device={device} onSuccess={onClose} />
             </div>
           )}
         </div>

@@ -6,11 +6,11 @@ Deploy the `tracking` app (Next.js 16 + Prisma + Postgres + next-auth) to a VPS 
 
 ## 2. Current State
 
-**Everything is committed and pushed. Nothing has been deployed to the VPS yet. That is the one remaining step.**
+**`f1393e9` (30 files) is committed and pushed. Since then, another full session of feature work has landed locally — all uncommitted. Nothing beyond `f1393e9` has been deployed to the VPS.**
 
-- Local: working tree clean, `master` up to date with `origin/master` at `f1393e9 first changes made` (30 files, both pending migrations included). Verified with `git ls-files prisma/migrations/`.
-- `npx tsc --noEmit` and `npm run build` both pass clean locally.
-- **The VPS is running an older build and an older database schema, and is currently broken** — see §5. It will stay broken until the deploy in §6 is run.
+- Local: `npx tsc --noEmit` and `npm run build` both pass clean.
+- Uncommitted since `f1393e9`: the Faulty removal from Stock, the CSV-import stock-decrement fix, the Device/Sim `type` column, Sales Report, and the payment-method-optional rule — see §3/§4 below. None of this has been committed, let alone pushed or deployed.
+- **The VPS is running the build from before `f1393e9` and is currently broken** — see §5. It will stay broken until the deploy in §6 is run, and that deploy should include everything, not just `f1393e9`.
 
 ### Infrastructure — done and working
 - `tracking` DB, `tracking_user` role, schema privileges granted.
@@ -20,44 +20,47 @@ Deploy the `tracking` app (Next.js 16 + Prisma + Postgres + next-auth) to a VPS 
 - **SSL live.** `certbot --nginx -d rt.addsmint.com` succeeded and added the `listen 443 ssl` block. `certbot renew --dry-run` shows `rt.addsmint.com` **succeeding**. (A different cert on the same box, `api.numu.com.pk`, fails renewal because its own DNS record no longer exists — a numu-app problem, not ours, deliberately untouched.)
 - `curl -I https://rt.addsmint.com` → `307` to `/dashboard` with `X-Powered-By: Next.js`, over HTTPS.
 
-### Database — 3 migrations pushed, 0 applied to the VPS
-| Migration | Adds | On VPS? |
-|---|---|---|
-| `20260809000000_manual_schema_sync` | 4 missing tables (`purchase_invoices`, `supplier_payments`, `fund_transfers`, `installation_devices`) + columns on `installations` (`received`, `sim_no`, `discount`, `amount_paid`), `devices` (`quantity`, `sale_price`), `accounts` (`opening_balance`), `suppliers` (`address`, `opening_owed`), and `installations.total_amount` recreated as `GENERATED ALWAYS AS ... STORED` | ❌ |
-| `20260818000000_installation_other_amount` | `installations.other_amount` | ❌ |
-| `20260818010000_installation_device_reference` | `installations.gsm_no`, `fm_module`, `cut_off`, `imei_no` | ❌ |
+### Database — 4 migrations exist locally, 0 applied to the VPS, only 3 are pushed
+| Migration | Adds | Pushed? | On VPS? |
+|---|---|---|---|
+| `20260809000000_manual_schema_sync` | 4 missing tables (`purchase_invoices`, `supplier_payments`, `fund_transfers`, `installation_devices`) + columns on `installations` (`received`, `sim_no`, `discount`, `amount_paid`), `devices` (`quantity`, `sale_price`), `accounts` (`opening_balance`), `suppliers` (`address`, `opening_owed`), and `installations.total_amount` recreated as `GENERATED ALWAYS AS ... STORED` | ✅ | ❌ |
+| `20260818000000_installation_other_amount` | `installations.other_amount` | ✅ | ❌ |
+| `20260818010000_installation_device_reference` | `installations.gsm_no`, `fm_module`, `cut_off`, `imei_no` | ✅ | ❌ |
+| `20260827000000_device_type` | `devices.type` (`"device"`\|`"sim"`, default `'device'`), backfills `type='sim'` for the one row named "sim" | ❌ **not committed** | ❌ |
 
-All three are required — the app queries these columns on nearly every page.
+All four are required — the app queries these columns on nearly every page. **The 4th is not yet committed** — see §3.
 
 ### Still open (after deploying)
 - Admin login is **not seeded on the VPS**. Default in `prisma/seed.ts` is `admin@trackfleet.com` / `Admin@123`. That password is hardcoded in a **public** GitHub repo — user has been told twice and chose to keep it for now. Change it before seeding if that changes.
 
 ## 3. Active Files
 
-Working tree is clean; everything below is in `f1393e9`.
+`f1393e9` (pushed) covers CSV import parity, the New Installation form additions, server-side pagination, Renewals filters, and Installations search/pay. Everything below is **uncommitted**, sitting on top of it:
 
-- Schema/migrations: `prisma/schema.prisma`, the three migration folders above.
-- CSV import: `lib/csv-import.ts`, `lib/validations/import.ts`, `lib/import-plan.ts`, `lib/installation-write.ts`, `lib/devices.ts`, `actions/import.ts`, `components/installations/ImportCsvModal.tsx`.
-- Installations: `app/(app)/installations/page.tsx`, `components/installations/InstallationsView.tsx`, `NewInstallationModal.tsx`, `PayBalanceModal.tsx` (new), `actions/installations.ts`.
-- Pagination: `lib/pagination.ts` (new), `components/ui/Pagination.tsx` (new), plus the `page.tsx`/`*View.tsx` pairs for Installations, Renewals, Expenses, Stock, Suppliers.
-- Renewals: `lib/renewals-query.ts` (new, raw SQL), `app/(app)/renewals/page.tsx`, `components/renewals/RenewalsView.tsx`.
-- Docs: `context/progress-tracker.md`, `context/ui-registry.md`.
+- Schema/migration: `prisma/schema.prisma` (`Device.type` field), `prisma/migrations/20260827000000_device_type/`.
+- Stock "Faulty" removal: `app/(app)/stock/page.tsx`, `components/stock/StockView.tsx`, `components/stock/EditDeviceModal.tsx`, `actions/devices.ts`, `lib/validations/device.ts`, `app/(app)/suppliers/page.tsx` (device picker narrowed to `in_stock` only).
+- CSV stock-decrement fix + Device/Sim type: `lib/devices.ts` (`resolveNamedStockLine` → `resolveStockLineByType`), `lib/csv-import.ts` (Device Qty / Sim Qty columns), `lib/validations/import.ts`, `actions/import.ts`, `lib/installation-write.ts`, `components/installations/ImportCsvModal.tsx`.
+- Add Device Type dropdown + top-up-not-split behavior: `components/stock/AddDeviceModal.tsx`, `actions/devices.ts`, `lib/validations/device.ts`.
+- Payment-method-optional rule: `lib/accounts.ts` (`resolvePayingAccount` gained `direction`), `actions/installations.ts`, `actions/customers.ts`, `components/installations/NewInstallationModal.tsx`, `components/customers/InstallationBlockFields.tsx`.
+- New Installation form trim (Phone/Sim/Amount Device/Sim Number removed): `components/installations/NewInstallationModal.tsx`.
+- Sales Report (new module): `app/(app)/sales-report/page.tsx`, `components/sales/SalesReportView.tsx`, sidebar entry in `components/layout/Sidebar.tsx` (placed under Renewals).
+- Docs: `context/progress-tracker.md`, `context/ui-registry.md` — all current, describe everything above in detail.
+
+Files from the *previous* uncommitted batch that are now safely in `f1393e9` (no longer active): `lib/pagination.ts`, `components/ui/Pagination.tsx`, `lib/renewals-query.ts`, and the pagination `page.tsx`/`*View.tsx` pairs.
 
 ## 4. Changes Made
 
-**Schema drift fix** — the live/dev database had accumulated tables and columns applied by hand over the project's history that were never captured as migration files. `prisma migrate deploy` on a fresh DB (the VPS) therefore silently skipped all of it. Generated the gap with `prisma migrate diff` against the real dev DB, hand-fixed `total_amount` (a `GENERATED ALWAYS` column can't be expressed as `ALTER COLUMN ... DEFAULT`, so it's dropped and recreated as `GENERATED ALWAYS AS ... STORED`), marked it applied locally with `migrate resolve`, and verified via a throwaway shadow DB that all migrations replay onto an empty database with **zero** remaining drift.
+**In `f1393e9` (pushed):** schema drift fix (see progress-tracker.md for the full story — the dev DB had years of hand-applied changes never captured as migrations, fixed via `prisma migrate diff` against the real dev DB + a hand-fixed `GENERATED ALWAYS` column), full CSV import column parity, New Installation modal additions (Phone/Amount Device/More details), server-side pagination on 5 pages, Renewals filter simplification, Installations search + Pay Remaining. Full detail in `context/progress-tracker.md`'s earlier entries — not repeated here.
 
-**CSV import** — full Data-entry-sheet column set (Contact 1–4 + mobiles, Address, Password, vehicle detail, GSM/FM Module/Cut Off/IMEI, Amount Device/Total Paid/Others). Cash forced as the payment method on every imported row. IMEI matched against / created in real Stock devices. Day-first vs month-first date ambiguity resolved by trying both readings (Excel rewrites dates on save, so this was unavoidable). Per-cell error reporting instead of first-error-only. Excel's scientific-notation IMEI mangling (`8.60123E+14`) is refused rather than stored. Phone/GSM no longer forced to exactly 11 digits.
+**Since then (uncommitted), in the order it happened:**
 
-**New Installation modal** — Phone, Amount Device, and a collapsible "More details" (address, contacts 1–4, vehicle detail, device reference). Device-reference fields are plain text on the installation, deliberately **not** linked to Stock. *Bug caught and fixed during testing:* re-submitting with "More details" blank was wiping the customer's existing contacts, because contacts use wholesale-replace semantics built for CSV re-imports; the manual form now only sends `contacts` when at least one is filled in.
+1. **Stock: Faulty removed entirely.** Stock page now queries `status: "in_stock"` only — no more filter tabs, no Status column. `EditDeviceModal` is purely a price editor; `updateDevice` no longer touches `status` at all (nothing in the org had any faulty/returned rows, confirmed before removing).
+2. **Payment Method made optional on installations.** Required only when `total > 0 && amountPaid > 0` — a zero-total installation never asks for one, even if Amount Paid is somehow non-zero. Reused the existing `resolvePayingAccount` (built for supplier invoices) rather than writing new logic; gave it a `direction` param so the refusal message reads correctly both ways.
+3. **New Installation form trimmed.** Removed Phone, Sim, Amount Device, Sim Number. Amount now carries the whole job alone. `InstallationBlockFields` (Add Customer page) was **not** trimmed — it still has Sim/Sim Number, deliberately, since that form's own scope wasn't part of the ask.
+4. **Found and fixed: CSV import never actually decremented Stock.** It matched/created devices by IMEI, but real stock is two bulk pools with no IMEI at all. New template columns **Device Qty** / **Sim Qty** (plain counts) now draw from those pools through the same `moveStock` mechanism the New Installation form uses — idempotent on re-import. IMEI (and GSM Numbar/FM Mudule/Cut Off, which used to be metadata on the now-deleted per-IMEI device) became plain reference text on the installation.
+5. **`Device.type` column added** (`"device"` | `"sim"`) so pool identity no longer depends on the literal string "tracker"/"sim" matching. Add Device gained a required Type dropdown; adding a second line of a type that already exists **tops up that same pool** rather than creating a second one (confirmed with the user: exactly one Device pool + one Sim pool per org, always). Stock's stats became **Device units** / **Sim units** (`groupBy(["type"])`), and the table gained a Type badge column.
 
-**Server-side pagination** — `PAGE_SIZE = 25`, URL-driven filters + page numbers on Installations/Renewals/Expenses/Stock/Suppliers. Filter tabs became `<Link>`s (client-side filtering over a partial page would have silently missed rows). Stock and Suppliers stat tiles moved from full-row-scan reductions to `groupBy`/`aggregate`. Customers and Payment Methods deliberately left out of this pass.
-
-**Renewals filters** — four tabs cut to three: Pending (default) / Received / All, plus a due-date range (`from`/`to`, plain GET form, both ends inclusive and optional). "Pending" is `NOT is_received` — overdue + due soon + upcoming — so nothing unpaid hides behind a threshold. The badge and "needs attention" banner still count overdue + due-soon only and deliberately ignore the range, being a standing alert. Renewals' `received` status can't be a plain Prisma `where` (it compares against the *latest* renewal record), so listing/counting is raw SQL in `lib/renewals-query.ts`, verified row-for-row against the previous JS logic.
-
-**Installations search + pay** — search by Registration No **or** IMEI, partial and case-insensitive. IMEI is searched across all three places it can live (`installations.imei_no`, the legacy `device` link, and CSV-created `devices[]` lines) or rows would be findable depending only on how they were created. The expand panel was rebuilt to match the team's old tracker sheet (Remarks + Installation Date on top; Contact Information | Car Description side by side) and a search now opens straight into that card. Added "Pay remaining" — a modal capped at the outstanding balance, with the ceiling **recomputed server-side** from stored figures (the input's `max` is convenience, not the rule); paying it off exactly flips `received`.
-
-**Sales Report module (new, `/sales-report`)** — added after the deploy commit, so this is **uncommitted work on top of `f1393e9`**. Per-installation earnings: Client / Reg No / Install Date / Sim / Device / Other, under four KPI cards (Others leads, then SIM total, Device total, installation count). Sidebar entry sits in Main, directly under Renewals. Date range over `installationDate`, reusing the Renewals GET-form pattern and shared `Pagination`; KPIs come from `aggregate()` across the whole range, not the visible page. **"Other" is computed as `total − sim − device`, not the stored `installations.other_amount`** — the two disagree on existing rows (BHN-058 stores 2000, computes 8000), which is intended: the stored column is what the CSV import writes and was left untouched. New files: `app/(app)/sales-report/page.tsx`, `components/sales/SalesReportView.tsx`. **No schema change.** Verified the KPI aggregate equals the sum of rendered per-row figures at several ranges, and checked in a browser.
+**Sales Report module (new, `/sales-report`)** — per-installation earnings: Client / Reg No / Install Date / Sim / Device / Other, under four KPI cards (Others leads, then SIM total, Device total, installation count). Sidebar entry sits in Main, directly under Renewals. Date range reuses the Renewals GET-form pattern and shared `Pagination`; KPIs come from `aggregate()` across the whole range, not the visible page. **"Other" is computed as `total − sim − device`, not the stored `installations.other_amount`** — the two disagree on existing rows (BHN-058 stores 2000, computes 8000), intentionally: the stored column is what CSV import writes and was left untouched. **No schema change** for this one.
 
 ## 5. Failed Attempts / Gotchas Hit
 
@@ -66,17 +69,20 @@ Working tree is clean; everything below is in `f1393e9`.
 - `prisma migrate dev` wanted to **reset the dev database** because of the drift; refused and hand-wrote the migration instead.
 - `prisma migrate diff` needs a `shadowDatabaseUrl` in `prisma.config.ts` — added temporarily, then reverted. A scratch `tracking_shadow` DB was created and dropped.
 - Earlier deploy-session issues, all resolved: PM2 crash-looping before `.env.local`/build existed; `next: not found` from an incomplete `node_modules`; `.env.local` written to `/var/www` instead of `/var/www/tracking`; a Postgres password mismatch; SQL pasted into bash instead of an open `psql` session.
-- Test-only DB writes during verification were all either done in rolled-back transactions or explicitly restored afterward (a Rs 400 payment on BHN-502 was recorded then reverted to its original 13,000; two installations were backdated to test renewal statuses then restored, with the restore re-asserted).
+- Test-only DB writes during verification were all either done in rolled-back transactions or explicitly restored afterward (a Rs 400 payment on BHN-502 was recorded then reverted to its original 13,000; two installations were backdated to test renewal statuses then restored; a real CSV import through the actual UI and a real Sim top-up through the actual Add Device form each moved real stock quantities, both confirmed and then restored to baseline — tracker 195, sim 10).
+- Same stale-Prisma-client symptom recurred **twice more** this session after adding the `Device.type` migration and again after the earlier ones — each time the running dev server needed a restart before `npx tsc`/the browser would stop throwing `Unknown argument` errors. This is now a confirmed recurring pattern after any migration, not a one-off.
+- Two test scripts briefly touched `.env.local` to redirect `AUTH_URL` at a second port (this project's own dev server was already occupying 3000 in one case, and a different unrelated project — `Star-Panaflex` — was occupying it in another). Both times the file was restored and diffed byte-identical against a backup afterward. Eventually just reused the project's own already-running server on 3000 instead of juggling a second instance, which is simpler going forward.
 
-## 6. Next Step — deploy
+## 6. Next Step
 
-On the VPS, in `/var/www/tracking`:
+1. **Commit and push everything since `f1393e9`** (§3 lists exactly what's uncommitted) — nothing past that commit exists on GitHub yet, so `git pull` on the VPS alone will not bring any of §4's items 1–5 or Sales Report over.
+2. **Then deploy**, on the VPS in `/var/www/tracking`:
 
 ```bash
 git pull origin master
 npm ci
 npx prisma generate      # do NOT skip — stale client causes "Unknown argument" errors
-npx prisma migrate deploy # must apply all THREE migrations
+npx prisma migrate deploy # must apply all FOUR migrations
 npm run build
 pm2 restart tracking
 ```
@@ -98,8 +104,11 @@ Then in a browser at `https://rt.addsmint.com`:
 2. Installations → search a plate or IMEI → confirm the lookup card renders with Contact Information / Car Description.
 3. Expand a row → confirm the same card + "Pay remaining" button.
 4. Renewals → confirm Pending/Received/All tabs and the due-date range.
+5. Stock → confirm no Faulty tab, Type column shows Device/Sim, stats read "Device units"/"Sim units".
+6. Sales Report (sidebar, under Renewals) → loads with KPIs and the date range.
+7. Import a small CSV with Device Qty/Sim Qty filled in → confirm Stock's Device/Sim units actually move.
 
-**If `migrate deploy` reports "No pending migrations", stop and investigate** — it should apply three.
+**If `migrate deploy` reports "No pending migrations", stop and investigate** — it should apply four.
 
 ## 7. Known Issues / Deliberate Non-Goals
 

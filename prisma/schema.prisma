@@ -114,6 +114,10 @@ model Device {
   id               String            @id @default(uuid())
   orgId            String            @map("org_id")
   supplierId       String?           @map("supplier_id")
+  /// "device" or "sim" — which of the org's two bulk stock pools this line
+  /// belongs to. Chosen once via the Add device dropdown, not editable after;
+  /// CSV import and the entry forms find the pool by this, not by name
+  type             String            @default("device")
   imeiNo           String?           @map("imei_no")
   gsmNo            String?           @map("gsm_no")
   gsmNoAlt         String?           @map("gsm_no_alt")

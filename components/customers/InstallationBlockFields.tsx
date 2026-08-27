@@ -86,6 +86,10 @@ export function InstallationBlockFields({
     amountPaid: parseFloat(draft.amountPaid) || 0,
   });
 
+  // Mirrors the Server Action: a method is only needed when money actually
+  // moved — something paid, against a job worth something
+  const hasPaid = money.total > 0 && money.amountPaid > 0;
+
   return (
     <div className="flex flex-col gap-5 rounded-[12px] border border-border bg-surface px-4 py-4">
       <div className="flex items-center justify-between">
@@ -185,16 +189,18 @@ export function InstallationBlockFields({
       {accounts.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <label className={labelClassName}>
-            Payment Method <span className="text-error">*</span>
+            Payment Method {hasPaid && <span className="text-error">*</span>}
           </label>
           <div className="relative">
             <select
               value={draft.accountId}
               onChange={(e) => onChange({ accountId: e.target.value })}
-              required
+              required={hasPaid}
               className={selectClassName}
             >
-              <option value="">Choose a payment method</option>
+              <option value="">
+                {hasPaid ? "Choose a payment method" : "No payment method"}
+              </option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -203,7 +209,9 @@ export function InstallationBlockFields({
             </select>
             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           </div>
-          <p className="text-[12px] text-text-muted">Where this money landed</p>
+          <p className="text-[12px] text-text-muted">
+            {hasPaid ? "Where this money landed" : "Needed once an Amount paid is entered"}
+          </p>
         </div>
       )}
 

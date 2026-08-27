@@ -51,9 +51,9 @@ export type InstallationRecord = {
   otherAmount?: number;
   /**
    * Plain reference text kept on the installation itself — not linked to a
-   * Stock device or its quantity. Used by the New installation form, which
-   * fits devices from real stock separately; these are just notes about the
-   * unit that was actually fitted.
+   * Stock device or its quantity. The New installation form's device-reference
+   * fields and the CSV import's IMEI both write here; devices are taken out
+   * of Stock separately, via `devices` below.
    */
   gsmNo?: string;
   fmModule?: string;
@@ -71,8 +71,9 @@ export type InstallationRecord = {
   /**
    * Every device fitted, already checked for org and availability. Supplying
    * the list takes those units out of stock and returns anything previously
-   * fitted. Absent means the caller has no opinion (CSV import) and stock is
-   * left alone.
+   * fitted — both the New installation form (real stock lines the staff
+   * picked) and the CSV import (Device Qty / Sim Qty against the shared
+   * "tracker" / "sim" pools) always supply this. Absent means no opinion.
    */
   devices?: DeviceLine[];
 };

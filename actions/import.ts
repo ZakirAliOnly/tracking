@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildImportPlan, type ImportPlan } from "@/lib/import-plan";
-import { resolveImportedDevice } from "@/lib/devices";
+import { resolveStockLineByType, type DeviceLine } from "@/lib/devices";
+import { resolveOrCreateCashAccountId } from "@/lib/accounts";
 import { writeInstallation } from "@/lib/installation-write";
 import {
   describeRowIssues,
@@ -42,24 +43,6 @@ function firstIssue(issues: { message: string }[]): string {
 
 function lineOf(index: number): number {
   return index + 2;
-}
-
-/**
- * The sheet has no payment method column, so every imported row is booked to
- * Cash — created once if the org has never set it up.
- */
-async function cashAccountId(orgId: string): Promise<string> {
-  const existing = await prisma.account.findFirst({
-    where: { orgId, name: { equals: "Cash", mode: "insensitive" } },
-    select: { id: true },
-  });
-  if (existing) return existing.id;
-
-  const created = await prisma.account.create({
-    data: { orgId, name: "Cash", type: "cash" },
-    select: { id: true },
-  });
-  return created.id;
 }
 
 /** Read-only preflight — reports duplicates and pending changes without writing. */
@@ -105,7 +88,7 @@ export async function importInstallations(rows: unknown): Promise<ImportResult> 
       errors: [],
     };
 
-    const accountId = await cashAccountId(orgId);
+    const accountId = await resolveOrCreateCashAccountId(orgId);
 
     const customers = await prisma.customer.findMany({
       where: { orgId },
@@ -152,18 +135,18 @@ export async function importInstallations(rows: unknown): Promise<ImportResult> 
           row.amountPaid >= row.amount + row.simPayment + row.devicePayment;
 
         const outcome = await prisma.$transaction(async (tx) => {
-          const devices = row.imeiNo
-            ? [
-                await resolveImportedDevice(tx, orgId, {
-                  imeiNo: row.imeiNo,
-                  fmModule: row.fmModule,
-                  gsmNo: row.simNo,
-                  gsmNoAlt: row.gsmNoAlt,
-                  cutOff: row.cutOff,
-                  salePrice: row.devicePayment,
-                }),
-              ]
-            : undefined;
+          // Quantities against the shared bulk pools — always supplied, so a
+          // corrected Device Qty/Sim Qty on a re-import returns the right
+          // number of units rather than only ever taking more out
+          const devices: DeviceLine[] = [];
+          if (row.deviceQty > 0) {
+            const deviceId = await resolveStockLineByType(tx, orgId, "device");
+            devices.push({ deviceId, quantity: row.deviceQty, unitPrice: 0 });
+          }
+          if (row.simQty > 0) {
+            const simId = await resolveStockLineByType(tx, orgId, "sim");
+            devices.push({ deviceId: simId, quantity: row.simQty, unitPrice: 0 });
+          }
 
           return writeInstallation(tx, orgId, {
             customerId,
@@ -194,6 +177,12 @@ export async function importInstallations(rows: unknown): Promise<ImportResult> 
               colour: row.colour,
             },
             devices,
+            // Plain reference text, same fields the New installation form's
+            // device-reference section writes — no longer tied to a Stock row
+            imeiNo: row.imeiNo ?? undefined,
+            gsmNo: row.gsmNoAlt ?? undefined,
+            fmModule: row.fmModule ?? undefined,
+            cutOff: row.cutOff ?? undefined,
           });
         });
 

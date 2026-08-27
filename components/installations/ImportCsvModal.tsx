@@ -440,7 +440,8 @@ const PREVIEW_KEYS = [
   "registrationNo",
   "installationDate",
   "imeiNo",
-  "fmModule",
+  "deviceQty",
+  "simQty",
   "amountPaid",
 ];
 

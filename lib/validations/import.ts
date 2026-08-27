@@ -62,6 +62,27 @@ const numberField = z
     return digits === "" ? null : digits;
   });
 
+/**
+ * A count of units, not money — blank means none, a decimal is rounded
+ * rather than rejected (a sheet typed by hand is more likely to have a stray
+ * ".0" than to mean half a unit), and negative is refused.
+ */
+function quantity(label: string) {
+  return z
+    .string()
+    .default("")
+    .transform((v, ctx) => {
+      const cleaned = v.replace(/[,\s]/g, "");
+      if (cleaned === "") return 0;
+      const n = Number(cleaned);
+      if (!Number.isFinite(n) || n < 0) {
+        ctx.addIssue({ code: "custom", message: `${label} must be a whole number of 0 or more` });
+        return z.NEVER;
+      }
+      return Math.round(n);
+    });
+}
+
 const optionalText = z
   .string()
   .default("")
@@ -131,6 +152,9 @@ export const installationImportRowSchema = z.object({
   devicePayment: money("Amount Device"),
   amountPaid: money("Total Paid"),
   otherAmount: money("Others"),
+
+  deviceQty: quantity("Device Qty"),
+  simQty: quantity("Sim Qty"),
 });
 
 /** The named contacts on a row, in sheet order, with blanks dropped. */
@@ -244,8 +268,9 @@ export const installationFormSchema = z.object({
   amountPaid: moneyInput,
   simNo: optionalTextInput
     .refine((v) => v === null || /^\d{11}$/.test(v), "Sim Number must be exactly 11 digits"),
-  // Shape only — whether one is required depends on the org's own accounts,
-  // which the schema cannot see. `resolveInstallationAccount` decides that
+  // Shape only — whether one is required depends on the org's own accounts and
+  // on whether anything was actually paid, neither of which the schema can see.
+  // `resolvePayingAccount` decides that
   accountId: optionalTextInput,
 });
 

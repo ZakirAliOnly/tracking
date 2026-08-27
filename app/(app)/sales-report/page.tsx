@@ -47,9 +47,9 @@ export default async function SalesReportPage({ searchParams }: Props) {
       select: {
         id: true,
         installationDate: true,
+        installationPay: true,
         simPayment: true,
         devicePayment: true,
-        totalAmount: true,
         customer: { select: { name: true } },
         vehicle: { select: { registrationNo: true } },
       },
@@ -61,7 +61,7 @@ export default async function SalesReportPage({ searchParams }: Props) {
     // only counted 25 rows would be wrong the moment the list paginated
     prisma.installation.aggregate({
       where,
-      _sum: { simPayment: true, devicePayment: true, totalAmount: true },
+      _sum: { installationPay: true, simPayment: true, devicePayment: true },
     }),
   ]);
 
@@ -70,33 +70,33 @@ export default async function SalesReportPage({ searchParams }: Props) {
     customerName: i.customer.name,
     registrationNo: i.vehicle.registrationNo,
     installationDate: i.installationDate.toISOString(),
+    amount: i.installationPay.toString(),
     simPayment: i.simPayment.toString(),
     devicePayment: i.devicePayment.toString(),
-    // What the job actually earned: the total with the SIM and the device —
-    // both pass-through costs — taken back out
-    otherAmount: String(
-      Number(i.totalAmount ?? 0) - Number(i.simPayment) - Number(i.devicePayment)
-    ),
+    // What is left of the installation charge once SIM and device are taken out
+    totalSale: String(Number(i.installationPay) - Number(i.simPayment) - Number(i.devicePayment)),
   }));
 
+  const sumAmount = Number(totals._sum.installationPay ?? 0);
   const sumSim = Number(totals._sum.simPayment ?? 0);
   const sumDevice = Number(totals._sum.devicePayment ?? 0);
-  const sumTotal = Number(totals._sum.totalAmount ?? 0);
+  const sumTotal = sumAmount - sumSim - sumDevice;
 
   return (
     <div className="p-6">
       <PageHeader
         title="Sales Report"
-        subtitle="What each installation earned once the SIM and device are taken out"
+        subtitle="Amount, Sim and Device per installation, with the total sale"
       />
       <div className="mt-5">
         <SalesReportView
           rows={rows}
           page={page}
           total={total}
+          totalAmount={sumAmount}
           totalSim={sumSim}
           totalDevice={sumDevice}
-          totalOther={sumTotal - sumSim - sumDevice}
+          totalSale={sumTotal}
           from={range.from ?? ""}
           to={range.to ?? ""}
           searchParams={sp}

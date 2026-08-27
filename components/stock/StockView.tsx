@@ -1,66 +1,56 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
 import { Package, Plus, MoreHorizontal } from "lucide-react";
 import { AddDeviceModal, type SupplierOption } from "@/components/stock/AddDeviceModal";
 import { EditDeviceModal, type EditDeviceTarget } from "@/components/stock/EditDeviceModal";
 import { Pagination } from "@/components/ui/Pagination";
-import { buildHref } from "@/lib/pagination";
 
-export type DeviceStatus = "in_stock" | "faulty" | "returned";
+export type StockType = "device" | "sim";
 
 export type DeviceRow = {
   id: string;
   fmModule: string | null;
+  type: StockType;
   supplierName: string | null;
   quantity: number;
   costPrice: string | null;
   salePrice: string | null;
-  status: DeviceStatus;
 };
 
 export type StockStats = {
-  inStock: number;
-  faulty: number;
-  returned: number;
+  /** Units in the org's one Device pool. */
+  deviceUnits: number;
+  /** Units in the org's one Sim pool. */
+  simUnits: number;
+  /** How many distinct stock lines make up those totals. */
+  lines: number;
 };
 
-type Filter = "all" | "in_stock" | "faulty" | "returned";
+function TypeBadge({ type }: { type: StockType }) {
+  return type === "sim" ? (
+    <span className="inline-flex rounded-full bg-accent-light px-2.5 py-1 text-xs font-semibold text-accent">
+      Sim
+    </span>
+  ) : (
+    <span className="inline-flex rounded-full bg-surface-tertiary px-2.5 py-1 text-xs font-semibold text-text-secondary">
+      Device
+    </span>
+  );
+}
 
 type Props = {
   devices: DeviceRow[];
   stats: StockStats;
   suppliers: SupplierOption[];
-  filter: Filter;
   page: number;
   total: number;
   searchParams: Record<string, string | undefined>;
-};
-const FILTER_LABELS: Record<Filter, string> = {
-  all: "All",
-  in_stock: "In stock",
-  faulty: "Faulty",
-  returned: "Returned",
 };
 
 function fmtRs(v: string | null) {
   if (!v || parseFloat(v) === 0) return "—";
   return `Rs ${Math.round(parseFloat(v)).toLocaleString("en-PK")}`;
-}
-
-function StatusBadge({ status }: { status: DeviceStatus }) {
-  const map: Record<DeviceStatus, { label: string; cls: string }> = {
-    in_stock: { label: "In stock", cls: "bg-accent-light text-accent" },
-    faulty: { label: "Faulty", cls: "bg-error-light text-error-foreground" },
-    returned: { label: "Returned", cls: "bg-surface-tertiary text-text-secondary" },
-  };
-  const { label, cls } = map[status] ?? { label: status, cls: "bg-surface-tertiary text-text-secondary" };
-  return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>
-      {label}
-    </span>
-  );
 }
 
 function StatCard({ label, value, accent }: { label: string; value: number; accent?: string }) {
@@ -77,7 +67,7 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
   );
 }
 
-export function StockView({ devices, stats, suppliers, filter, page, total, searchParams }: Props) {
+export function StockView({ devices, stats, suppliers, page, total, searchParams }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<EditDeviceTarget | null>(null);
 
@@ -85,9 +75,9 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
     setEditTarget({
       id: row.id,
       fmModule: row.fmModule,
+      type: row.type,
       costPrice: row.costPrice,
       salePrice: row.salePrice,
-      status: row.status,
     });
   }, []);
 
@@ -108,23 +98,7 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
       />
 
       {/* Toolbar */}
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
-          {(Object.keys(FILTER_LABELS) as Filter[]).map((f) => (
-            <Link
-              key={f}
-              href={buildHref("/stock", searchParams, { status: f === "all" ? undefined : f })}
-              className={`rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
-                filter === f
-                  ? "bg-text-primary font-semibold text-white"
-                  : "font-medium text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {FILTER_LABELS[f]}
-            </Link>
-          ))}
-        </div>
-
+      <div className="mb-5 flex items-center justify-end">
         <button
           onClick={() => setAddOpen(true)}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
@@ -137,9 +111,9 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
 
       {/* Stats cards */}
       <div className="mb-5 grid grid-cols-3 gap-4">
-        <StatCard label="In stock" value={stats.inStock} />
-        <StatCard label="Faulty" value={stats.faulty} accent={stats.faulty > 0 ? "text-error" : undefined} />
-        <StatCard label="Returned" value={stats.returned} />
+        <StatCard label="Device units" value={stats.deviceUnits} />
+        <StatCard label="Sim units" value={stats.simUnits} />
+        <StatCard label="Stock lines" value={stats.lines} />
       </div>
 
       {/* Table */}
@@ -148,12 +122,12 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
         style={{ boxShadow: "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)" }}
       >
         {devices.length === 0 ? (
-          <EmptyState filter={filter} />
+          <EmptyState />
         ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
-                {["Device name", "Supplier", "Qty", "Cost price", "Sale price", "Status", ""].map((h) => (
+                {["Device name", "Type", "Supplier", "Qty", "Cost price", "Sale price", ""].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted first:pl-5"
@@ -177,6 +151,9 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
                     </span>
                   </td>
                   <td className="px-4 py-4">
+                    <TypeBadge type={device.type} />
+                  </td>
+                  <td className="px-4 py-4">
                     <span className="text-[13px] text-text-secondary">
                       {device.supplierName ?? "—"}
                     </span>
@@ -195,9 +172,6 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
                     <span className="text-[13px] font-medium text-text-primary">
                       {fmtRs(device.salePrice)}
                     </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={device.status} />
                   </td>
                   <td className="pl-2 pr-5 py-4">
                     <button
@@ -221,22 +195,17 @@ export function StockView({ devices, stats, suppliers, filter, page, total, sear
   );
 }
 
-function EmptyState({ filter }: { filter: Filter }) {
-  const messages: Record<Filter, { title: string; sub: string }> = {
-    all: { title: "No devices yet", sub: "Add your first device to get started." },
-    in_stock: { title: "No devices in stock", sub: "Add a device or receive stock via a supplier invoice." },
-    faulty: { title: "No faulty devices", sub: "No devices are marked as faulty." },
-    returned: { title: "No returned devices", sub: "Returned devices will appear here." },
-  };
-  const { title, sub } = messages[filter];
+function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
       <div className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-accent-light">
         <Package className="h-7 w-7 text-accent" />
       </div>
       <div className="text-center">
-        <p className="text-[15px] font-semibold text-text-primary">{title}</p>
-        <p className="mt-1 text-[13px] text-text-secondary">{sub}</p>
+        <p className="text-[15px] font-semibold text-text-primary">Nothing in stock</p>
+        <p className="mt-1 text-[13px] text-text-secondary">
+          Add a device, or receive stock through a supplier invoice.
+        </p>
       </div>
     </div>
   );

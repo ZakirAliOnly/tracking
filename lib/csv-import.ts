@@ -47,14 +47,19 @@ export const INSTALLATION_COLUMNS: ColumnSpec[] = [
 
   { key: "simNo", header: "GSM Number", aliases: ["Sim Number", "Sim No"], required: false, hint: "SIM number fitted in the device — any digits are kept as written, no fixed length", sample: "03011234567" },
   { key: "gsmNoAlt", header: "GSM Numbar", required: false, hint: "Second SIM number, if the device carries one", sample: "" },
-  { key: "imeiNo", header: "IMEI Number", aliases: ["IMEI", "IMEI No"], required: false, hint: "Identifies the device — a matching stock item is used, or a new one is created and taken out of stock", sample: "860123456789012" },
+  { key: "imeiNo", header: "IMEI Number", aliases: ["IMEI", "IMEI No"], required: false, hint: "Identifies the device — kept as plain reference text, does not touch Stock", sample: "860123456789012" },
   { key: "fmModule", header: "FM Mudule", aliases: ["FM Module"], required: false, hint: "Device model fitted", sample: "GT06N" },
 
   { key: "amount", header: "Amount", aliases: ["amount"], required: false, format: "number", hint: "Installation charge", sample: "8000" },
   { key: "simPayment", header: "Sim", aliases: ["Sim and Osting", "Sim Payment", "Sim Paymint"], required: false, format: "number", hint: "SIM charge", sample: "6000" },
-  { key: "devicePayment", header: "Amount Device", aliases: ["Device Amount", "Device"], required: false, format: "number", hint: "Device charge", sample: "4000" },
+  { key: "devicePayment", header: "Amount Device", aliases: ["Device Amount"], required: false, format: "number", hint: "Device charge", sample: "4000" },
   { key: "amountPaid", header: "Total Paid", aliases: ["Total Pay", "Paid"], required: false, format: "number", hint: "What the customer has actually paid — the row counts as received once this covers Amount + Sim + Amount Device", sample: "18000" },
   { key: "otherAmount", header: "Others", aliases: ["Other"], required: false, format: "number", hint: "What is left after SIM, device and expenses are taken off — written by hand, never worked out for you", sample: "2000" },
+
+  // Plain quantities taken out of the shared "tracker" and "sim" stock lines —
+  // separate from Amount Device / Sim above, which are money, not units
+  { key: "deviceQty", header: "Device Qty", aliases: ["Device Quantity"], required: false, format: "whole number", hint: "How many trackers were fitted — taken out of the tracker stock line", sample: "1" },
+  { key: "simQty", header: "Sim Qty", aliases: ["Sim Quantity"], required: false, format: "whole number", hint: "How many SIMs were fitted — taken out of the sim stock line", sample: "1" },
 ];
 
 export const TEMPLATE_FILENAME = "installations-import-template.csv";
