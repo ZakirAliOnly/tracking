@@ -10,6 +10,7 @@ export default async function PrintInvoicePage({ params }: Props) {
   if (!session) redirect("/login");
   const { orgId } = session.user;
 
+  const louru = null;
   const { id } = await params;
 
   const inv = await prisma.purchaseInvoice.findUnique({
