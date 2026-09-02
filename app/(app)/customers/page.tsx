@@ -24,7 +24,7 @@ export default async function CustomersPage() {
         contacts: { select: { id: true } },
         vehicles: { select: { id: true } },
         installations: {
-          where: { status: "active" },
+          where: { status: "active", deletedAt: null },
           select: { id: true, nextRenewalDate: true },
         },
       },

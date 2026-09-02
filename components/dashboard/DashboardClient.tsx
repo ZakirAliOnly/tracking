@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import {
-  Monitor, DollarSign, RefreshCw, Package,
+  Monitor, DollarSign, RefreshCw, Package, Signal,
   Plus, CheckCircle, Clock,
 } from "lucide-react";
 import {
@@ -268,7 +268,7 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
       </div>
 
       {/* ── KPI cards ── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <KpiCard
           icon={Monitor}
           label="Active installations"
@@ -292,10 +292,17 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
         />
         <KpiCard
           icon={Package}
-          label="Devices in stock"
+          label="Device in stock"
           value={String(kpi.stockCount)}
           color="violet"
           badge={<TrendBadge value={kpi.stockCount} type="up" />}
+        />
+        <KpiCard
+          icon={Signal}
+          label="Sim in stock"
+          value={String(kpi.simStockCount)}
+          color="violet"
+          badge={<TrendBadge value={kpi.simStockCount} type="up" />}
         />
       </div>
 

@@ -97,7 +97,7 @@ export async function generateReport(
     if (type === "overview") {
       const [installs, renewals] = await Promise.all([
         prisma.installation.findMany({
-          where: { orgId, installationDate: { gte: from, lte: to } },
+          where: { orgId, deletedAt: null, installationDate: { gte: from, lte: to } },
           include: {
             customer: { select: { name: true } },
             vehicle: { select: { registrationNo: true, make: true, model: true } },
@@ -169,7 +169,7 @@ export async function generateReport(
 
     if (type === "installations") {
       const rows = await prisma.installation.findMany({
-        where: { orgId, installationDate: { gte: from, lte: to } },
+        where: { orgId, deletedAt: null, installationDate: { gte: from, lte: to } },
         include: {
           customer: { select: { name: true } },
           vehicle: { select: { registrationNo: true, make: true, model: true } },
@@ -301,7 +301,7 @@ export async function generateReport(
       const [installations, renewals, expenses, supplierPayments, purchaseInvoices, transfersOut, transfersIn] =
         await Promise.all([
           prisma.installation.findMany({
-            where: { orgId, accountId },
+            where: { orgId, accountId, deletedAt: null },
             include: { customer: { select: { name: true } }, vehicle: { select: { registrationNo: true } } },
           }),
           prisma.renewal.findMany({

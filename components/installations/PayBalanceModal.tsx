@@ -1,10 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { payInstallationBalance, type InstallationActionState } from "@/actions/installations";
 import { useActionToast } from "@/components/ui/ToastProvider";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import type { AccountOption } from "@/lib/accounts";
 
 export type PayTarget = {
   installationId: string;
@@ -18,20 +19,25 @@ type Props = {
   open: boolean;
   onClose: () => void;
   target: PayTarget | null;
+  accounts: AccountOption[];
 };
+
+const SELECT_INPUT =
+  "h-10 w-full appearance-none rounded-[9px] border border-border bg-surface px-3 pr-8 text-[14px] text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-light transition-colors";
 
 function fmtRs(v: string | number) {
   const n = typeof v === "string" ? parseFloat(v) : v;
   return `Rs ${Math.round(n || 0).toLocaleString("en-PK")}`;
 }
 
-export function PayBalanceModal({ open, onClose, target }: Props) {
+export function PayBalanceModal({ open, onClose, target, accounts }: Props) {
   const [state, formAction] = useActionState<InstallationActionState, FormData>(
     payInstallationBalance,
     null
   );
   const [formKey, setFormKey] = useState(0);
   const [amount, setAmount] = useState("");
+  const [accountId, setAccountId] = useState("");
 
   useActionToast(state?.error);
 
@@ -42,6 +48,7 @@ export function PayBalanceModal({ open, onClose, target }: Props) {
       onClose();
       setFormKey((k) => k + 1);
       setAmount("");
+      setAccountId("");
     }
   }, [state?.success, onClose]);
 
@@ -49,6 +56,7 @@ export function PayBalanceModal({ open, onClose, target }: Props) {
     if (!open) {
       setFormKey((k) => k + 1);
       setAmount("");
+      setAccountId("");
     }
   }, [open]);
 
@@ -59,6 +67,9 @@ export function PayBalanceModal({ open, onClose, target }: Props) {
   // round trip; the Server Action re-checks it against stored figures anyway
   const overpaying = entered > owed;
   const left = Math.max(owed - entered, 0);
+  // Money always moves on this form, so a method is required as soon as the
+  // org has any to choose from — mirrors resolvePayingAccount's own rule
+  const needsAccount = accounts.length > 0;
 
   return (
     <>
@@ -144,6 +155,38 @@ export function PayBalanceModal({ open, onClose, target }: Props) {
                   </p>
                 )}
               </div>
+
+              {needsAccount && (
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="pay-account"
+                    className="text-[12px] font-medium uppercase tracking-wider text-text-muted"
+                  >
+                    Payment Method <span className="text-error">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="pay-account"
+                      name="accountId"
+                      value={accountId}
+                      onChange={(e) => setAccountId(e.target.value)}
+                      required
+                      className={SELECT_INPUT}
+                    >
+                      <option value="" disabled>
+                        Choose a payment method
+                      </option>
+                      {accounts.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  </div>
+                  <p className="text-[12px] text-text-muted">Where this payment lands</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-auto flex flex-shrink-0 gap-3 border-t border-border px-6 py-5">
@@ -156,7 +199,7 @@ export function PayBalanceModal({ open, onClose, target }: Props) {
               </button>
               <SubmitButton
                 pendingLabel="Saving…"
-                disabled={entered <= 0 || overpaying}
+                disabled={entered <= 0 || overpaying || (needsAccount && !accountId)}
                 className="flex h-10 flex-1 items-center justify-center gap-2 rounded-[9px] bg-accent text-[14px] font-semibold text-accent-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
               >

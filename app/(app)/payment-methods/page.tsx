@@ -15,16 +15,16 @@ export default async function PaymentMethodsPage() {
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const [rawAccounts, rawRenewals, rawInstallations, rawExpenses, rawSupplierPayments, rawPurchaseInvoices, rawTransfers] =
+  const [rawAccounts, rawRenewals, rawInstallationPayments, rawExpenses, rawSupplierPayments, rawPurchaseInvoices, rawTransfers] =
     await Promise.all([
       prisma.account.findMany({ where: { orgId }, orderBy: { createdAt: "asc" } }),
       prisma.renewal.findMany({
         where: { orgId, received: true },
         select: { accountId: true, amount: true, simOsting: true, net: true, other: true },
       }),
-      prisma.installation.findMany({
+      prisma.installationPayment.findMany({
         where: { orgId },
-        select: { accountId: true, totalAmount: true },
+        select: { accountId: true, amount: true },
       }),
       prisma.expense.findMany({
         where: { orgId },
@@ -61,9 +61,9 @@ export default async function PaymentMethodsPage() {
     }
   }
 
-  for (const i of rawInstallations) {
-    if (i.accountId && i.accountId in balances && i.totalAmount) {
-      balances[i.accountId] += Number(i.totalAmount);
+  for (const p of rawInstallationPayments) {
+    if (p.accountId && p.accountId in balances) {
+      balances[p.accountId] += Number(p.amount);
     }
   }
 

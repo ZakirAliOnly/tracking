@@ -36,43 +36,27 @@ export async function addDevice(
     const salePrice = d.salePrice ? parseFloat(d.salePrice) : null;
     const supplierId = d.supplierId || null;
 
-    // There is exactly one Device pool and one Sim pool per org — adding a
-    // second stock line of the same type tops that pool up rather than
-    // splitting it, the same bulk line CSV import and the entry forms draw from
-    const existing = await prisma.device.findFirst({
-      where: { orgId, type: d.type, imeiNo: null },
-      select: { id: true },
-    });
-
-    if (existing) {
-      await prisma.$executeRaw`
-        UPDATE devices
-        SET
-          quantity = quantity + ${quantity},
-          cost_price = COALESCE(${costPrice}, cost_price),
-          sale_price = COALESCE(${salePrice}, sale_price),
-          supplier_id = COALESCE(${supplierId}, supplier_id)
-        WHERE id = ${existing.id}
-          AND org_id = ${orgId}
-      `;
-    } else {
-      const id = randomUUID();
-      await prisma.$executeRaw`
-        INSERT INTO devices (id, org_id, type, fm_module, supplier_id, quantity, cost_price, sale_price, status, created_at)
-        VALUES (
-          ${id},
-          ${orgId},
-          ${d.type},
-          ${d.fmModule},
-          ${supplierId},
-          ${quantity},
-          ${costPrice},
-          ${salePrice},
-          'in_stock',
-          NOW()
-        )
-      `;
-    }
+    // Every Add Device creates its own distinct stock line — multiple named
+    // devices and sims can exist side by side, each tracked and priced
+    // separately, and picking one on an installation deducts only its own
+    // quantity. (Earlier this project used one shared pool per type; that was
+    // reverted per the org's own request to carry multiple products.)
+    const id = randomUUID();
+    await prisma.$executeRaw`
+      INSERT INTO devices (id, org_id, type, fm_module, supplier_id, quantity, cost_price, sale_price, status, created_at)
+      VALUES (
+        ${id},
+        ${orgId},
+        ${d.type},
+        ${d.fmModule},
+        ${supplierId},
+        ${quantity},
+        ${costPrice},
+        ${salePrice},
+        'in_stock',
+        NOW()
+      )
+    `;
 
     revalidatePath("/stock");
     return { success: true };

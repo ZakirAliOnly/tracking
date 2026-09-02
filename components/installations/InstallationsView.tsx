@@ -2,14 +2,23 @@
 
 import { Fragment, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, HardDrive, Plus, Search, Upload, Wallet, X } from "lucide-react";
+import {
+  ChevronDown, HardDrive, Pencil, Plus, RotateCcw, Search, Trash2, Upload, Wallet, X,
+} from "lucide-react";
 import {
   NewInstallationModal,
   type CustomerOption,
+  type EditTarget,
 } from "@/components/installations/NewInstallationModal";
 import { ImportCsvModal } from "@/components/installations/ImportCsvModal";
 import { PayBalanceModal, type PayTarget } from "@/components/installations/PayBalanceModal";
 import { Pagination } from "@/components/ui/Pagination";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import {
+  trashInstallation,
+  restoreInstallation,
+  permanentlyDeleteInstallation,
+} from "@/actions/installations";
 import { buildHref, PAGE_SIZE } from "@/lib/pagination";
 import type { AccountOption } from "@/lib/accounts";
 import type { InstallableDevice } from "@/lib/device-options";
@@ -30,7 +39,13 @@ export type InstallationRow = {
   simPayment: string;
   discount: string;
   amountPaid: string;
-  fittedDevices: { name: string; quantity: number; unitPrice: string }[];
+  fittedDevices: {
+    deviceId: string;
+    name: string;
+    quantity: number;
+    unitPrice: string;
+    type: "device" | "sim";
+  }[];
   imeiNo: string | null;
   gsmNo: string | null;
   gsmNoAlt: string | null;
@@ -41,13 +56,26 @@ export type InstallationRow = {
   colour: string | null;
   installationDate: string;
   totalAmount: string | null;
+  accountId: string | null;
   accountName: string | null;
   nextRenewalDate: string;
   status: string;
   isRenewalDue: boolean;
+  /** Set once this installation has been moved to Trash. */
+  deletedAt: string | null;
+  /** Every IMEI change on record for this installation, newest first. */
+  imeiHistory: { oldImei: string | null; newImei: string | null; changedAt: string }[];
+  edit: {
+    phone: string;
+    address: string | null;
+    carDescription: string | null;
+    make: string | null;
+    model: string | null;
+    contacts: { name: string; mobile: string; position: number }[];
+  };
 };
 
-type Filter = "all" | "active" | "suspended";
+type Filter = "all" | "active" | "suspended" | "trash";
 
 type Props = {
   installations: InstallationRow[];
@@ -162,6 +190,105 @@ function StatusPill({ status, isRenewalDue }: { status: string; isRenewalDue: bo
   );
 }
 
+/**
+ * Edit + Trash on a live row; Restore + Delete permanently on a trashed one.
+ * Shared between the table row and DetailPanel so both stay in sync.
+ */
+function RowActions({
+  inst,
+  size = "md",
+  onEdit,
+}: {
+  inst: InstallationRow;
+  size?: "sm" | "md";
+  onEdit: () => void;
+}) {
+  const dim = size === "sm" ? "h-8 w-8" : "h-9 w-9";
+  const iconDim = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const btnClass = `flex ${dim} items-center justify-center rounded-[8px] text-text-muted transition-colors`;
+
+  if (inst.deletedAt !== null) {
+    return (
+      <div className="flex items-center justify-end gap-1">
+        <form
+          action={async (fd: FormData) => {
+            await restoreInstallation(null, fd);
+          }}
+        >
+          <input type="hidden" name="id" value={inst.id} />
+          <SubmitButton
+            pendingLabel=""
+            spinnerClassName={iconDim}
+            aria-label="Restore installation"
+            className={`${btnClass} hover:bg-success-light hover:text-success-foreground disabled:opacity-60`}
+          >
+            <RotateCcw className={iconDim} />
+          </SubmitButton>
+        </form>
+        <form
+          action={async (fd: FormData) => {
+            await permanentlyDeleteInstallation(null, fd);
+          }}
+          onSubmit={(e) => {
+            if (
+              !window.confirm(
+                `Permanently delete the installation for ${inst.registrationNo}? This removes its renewal history and payment records for good. There is no undo.`
+              )
+            )
+              e.preventDefault();
+          }}
+        >
+          <input type="hidden" name="id" value={inst.id} />
+          <SubmitButton
+            pendingLabel=""
+            spinnerClassName={iconDim}
+            aria-label="Delete permanently"
+            className={`${btnClass} hover:bg-error-light hover:text-error disabled:opacity-60`}
+          >
+            <Trash2 className={iconDim} />
+          </SubmitButton>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label="Edit installation"
+        className={`${btnClass} hover:bg-accent-light hover:text-accent`}
+      >
+        <Pencil className={iconDim} />
+      </button>
+      <form
+        action={async (fd: FormData) => {
+          await trashInstallation(null, fd);
+        }}
+        onSubmit={(e) => {
+          if (
+            !window.confirm(
+              `Delete the installation for ${inst.registrationNo}? Its fitted devices return to Stock. It moves to Trash and can be restored from there.`
+            )
+          )
+            e.preventDefault();
+        }}
+      >
+        <input type="hidden" name="id" value={inst.id} />
+        <SubmitButton
+          pendingLabel=""
+          spinnerClassName={iconDim}
+          aria-label="Delete installation"
+          className={`${btnClass} hover:bg-error-light hover:text-error disabled:opacity-60`}
+        >
+          <Trash2 className={iconDim} />
+        </SubmitButton>
+      </form>
+    </div>
+  );
+}
+
 /* ─── Main view ────────────────────────────────────────── */
 
 export function InstallationsView({
@@ -179,6 +306,7 @@ export function InstallationsView({
   const [importOpen, setImportOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [payTarget, setPayTarget] = useState<PayTarget | null>(null);
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
 
   const openPay = (inst: InstallationRow) =>
     setPayTarget({
@@ -188,16 +316,51 @@ export function InstallationsView({
       remaining: remaining(inst),
     });
 
+  const openEdit = (inst: InstallationRow) => {
+    setEditTarget({
+      customerName: inst.customerName,
+      registrationNo: inst.registrationNo,
+      installationDate: inst.installationDate.slice(0, 10),
+      fittedDevices: inst.fittedDevices.map((d) => ({
+        deviceId: d.deviceId,
+        quantity: d.quantity,
+        type: d.type,
+      })),
+      amount: inst.amount,
+      discount: inst.discount,
+      amountPaid: inst.amountPaid,
+      accountId: inst.accountId,
+      phone: inst.edit.phone,
+      address: inst.edit.address,
+      contacts: inst.edit.contacts,
+      carDescription: inst.edit.carDescription,
+      make: inst.edit.make,
+      model: inst.edit.model,
+      engineNo: inst.engineNo,
+      chassisNo: inst.chassisNo,
+      colour: inst.colour,
+      gsmNo: inst.gsmNo,
+      fmModule: inst.fmModule,
+      cutOff: inst.cutOff,
+      imeiNo: inst.imeiNo,
+    });
+    setModalOpen(true);
+  };
+
   const searching = query !== "";
 
   return (
     <>
       <NewInstallationModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditTarget(null);
+        }}
         customers={customers}
         accounts={accounts}
         devices={devices}
+        editTarget={editTarget}
       />
 
       <ImportCsvModal open={importOpen} onClose={() => setImportOpen(false)} />
@@ -206,95 +369,121 @@ export function InstallationsView({
         open={payTarget !== null}
         onClose={() => setPayTarget(null)}
         target={payTarget}
+        accounts={accounts}
       />
 
       {/* Toolbar */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
-          {(["all", "active", "suspended"] as const).map((f) => (
-            <Link
-              key={f}
-              href={buildHref("/installations", searchParams, { status: f === "all" ? undefined : f })}
-              className={`rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
-                filter === f
-                  ? "bg-text-primary font-semibold text-white"
-                  : "font-medium text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </Link>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-[9px] border border-border bg-surface p-1">
+            {(["all", "active", "suspended"] as const).map((f) => (
+              <Link
+                key={f}
+                href={buildHref("/installations", searchParams, { status: f === "all" ? undefined : f })}
+                className={`rounded-[7px] px-3.5 py-1.5 text-[13px] transition-colors ${
+                  filter === f
+                    ? "bg-text-primary font-semibold text-white"
+                    : "font-medium text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </Link>
+            ))}
+          </div>
+
+          <Link
+            href={buildHref("/installations", searchParams, { status: "trash" })}
+            className={`flex h-[34px] items-center gap-1.5 rounded-[9px] border px-3.5 text-[13px] font-medium transition-colors ${
+              filter === "trash"
+                ? "border-error bg-error-light text-error"
+                : "border-border bg-surface text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Trash
+          </Link>
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setImportOpen(true)}
-            className="flex h-9 items-center gap-2 rounded-[9px] border border-border bg-surface px-4 text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
-          >
-            <Upload className="h-4 w-4" />
-            Import CSV
-          </button>
+          {filter !== "trash" && (
+            <button
+              onClick={() => setImportOpen(true)}
+              className="flex h-9 items-center gap-2 rounded-[9px] border border-border bg-surface px-4 text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+            >
+              <Upload className="h-4 w-4" />
+              Import CSV
+            </button>
+          )}
 
-          <button
-            onClick={() => setModalOpen(true)}
-            className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-            style={{
-              boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            New installation
-          </button>
+          {filter !== "trash" && (
+            <button
+              onClick={() => {
+                setEditTarget(null);
+                setModalOpen(true);
+              }}
+              className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+              style={{
+                boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              New installation
+            </button>
+          )}
         </div>
       </div>
 
       {/* Search — a plain GET form, matching the filter tabs' URL-driven
-          approach. Omitting `page` resets to page 1 on every new search */}
-      <form method="GET" action="/installations" className="mb-5 flex flex-wrap items-center gap-2">
-        {filter !== "all" && <input type="hidden" name="status" value={filter} />}
+          approach. Omitting `page` resets to page 1 on every new search.
+          Trash has no search of its own — it is a short, deliberately
+          reviewed list, not something to filter down */}
+      {filter !== "trash" && (
+        <form method="GET" action="/installations" className="mb-5 flex flex-wrap items-center gap-2">
+          {filter !== "all" && <input type="hidden" name="status" value={filter} />}
 
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={query}
-            placeholder="Search by Registration No or IMEI"
-            aria-label="Search by registration number or IMEI"
-            className="h-9 w-[320px] rounded-[9px] border border-border bg-surface pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-light transition-colors"
-          />
-        </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={query}
+              placeholder="Search by Registration No or IMEI"
+              aria-label="Search by registration number or IMEI"
+              className="h-9 w-[320px] rounded-[9px] border border-border bg-surface pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-light transition-colors"
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="flex h-9 items-center rounded-[9px] border border-border bg-surface px-3.5 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
-        >
-          Search
-        </button>
+          <button
+            type="submit"
+            className="flex h-9 items-center rounded-[9px] border border-border bg-surface px-3.5 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
+          >
+            Search
+          </button>
 
-        {query && (
-          <>
-            <Link
-              href={buildHref("/installations", searchParams, { q: undefined })}
-              className="flex h-9 items-center gap-1 rounded-[9px] px-2.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text-primary"
-            >
-              <X className="h-3.5 w-3.5" />
-              Clear
-            </Link>
-            <span className="text-[12.5px] text-text-secondary">
-              {total} result{total === 1 ? "" : "s"} for{" "}
-              <span className="font-mono font-semibold text-text-primary">{query}</span>
-            </span>
-          </>
-        )}
-      </form>
+          {query && (
+            <>
+              <Link
+                href={buildHref("/installations", searchParams, { q: undefined })}
+                className="flex h-9 items-center gap-1 rounded-[9px] px-2.5 text-[13px] font-medium text-text-muted transition-colors hover:text-text-primary"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear
+              </Link>
+              <span className="text-[12.5px] text-text-secondary">
+                {total} result{total === 1 ? "" : "s"} for{" "}
+                <span className="font-mono font-semibold text-text-primary">{query}</span>
+              </span>
+            </>
+          )}
+        </form>
+      )}
 
       {/* A search is a lookup, so every match opens straight into its full
           record rather than a row that has to be expanded again */}
       {searching && installations.length > 0 ? (
         <div className="flex flex-col gap-4">
           {installations.map((inst) => (
-            <DetailPanel key={inst.id} inst={inst} onPay={() => openPay(inst)} />
+            <DetailPanel key={inst.id} inst={inst} onPay={() => openPay(inst)} onEdit={() => openEdit(inst)} />
           ))}
           {total > PAGE_SIZE && (
             <div
@@ -333,6 +522,7 @@ export function InstallationsView({
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Total</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Received</th>
                 <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
+                <th className="px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wide text-text-muted">Actions</th>
                 <th className="px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wide text-text-muted" />
               </tr>
             </thead>
@@ -403,6 +593,11 @@ export function InstallationsView({
                       <StatusPill status={inst.status} isRenewalDue={inst.isRenewalDue} />
                     </td>
 
+                    {/* Actions */}
+                    <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <RowActions inst={inst} size="sm" onEdit={() => openEdit(inst)} />
+                    </td>
+
                     {/* Expand toggle */}
                     <td className="px-4 py-4 text-right">
                       <ChevronDown
@@ -416,8 +611,8 @@ export function InstallationsView({
                   {/* Expandable detail panel */}
                   {expandedId === inst.id && (
                     <tr className="bg-surface-muted">
-                      <td colSpan={9} className="px-6 pb-5 pt-4">
-                        <DetailPanel inst={inst} onPay={() => openPay(inst)} />
+                      <td colSpan={10} className="px-6 pb-5 pt-4">
+                        <DetailPanel inst={inst} onPay={() => openPay(inst)} onEdit={() => openEdit(inst)} />
                       </td>
                     </tr>
                   )}
@@ -477,12 +672,64 @@ function FieldRow({
 }
 
 /**
+ * A small, collapsed-by-default log of every IMEI change on this
+ * installation — written automatically whenever the IMEI is edited or a
+ * re-import brings a different one. Nothing to show renders nothing at all.
+ */
+function ImeiHistory({
+  entries,
+}: {
+  entries: { oldImei: string | null; newImei: string | null; changedAt: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="rounded-[10px] border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left"
+      >
+        <span className="text-[12px] font-medium text-text-secondary">
+          IMEI history ({entries.length})
+        </span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-text-muted transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1.5 border-t border-border-light px-3 py-2">
+          {entries.map((e, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 text-[12px]">
+              <span className="font-mono text-text-secondary">
+                {e.oldImei ?? "—"} <span className="text-text-muted">→</span>{" "}
+                <span className="font-semibold text-text-primary">{e.newImei ?? "—"}</span>
+              </span>
+              <span className="flex-none text-text-muted">{fmtDate(e.changedAt)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * The record as the team reads it on the old tracker sheet — remarks and
  * installation date across the top, then who to call on the left against what
  * is fitted to the car on the right. Used both when a row is expanded and for
  * search results, so a plate or IMEI lookup lands on exactly this view.
  */
-function DetailPanel({ inst, onPay }: { inst: InstallationRow; onPay: () => void }) {
+function DetailPanel({
+  inst,
+  onPay,
+  onEdit,
+}: {
+  inst: InstallationRow;
+  onPay: () => void;
+  onEdit: () => void;
+}) {
   const owed = parseFloat(remaining(inst));
 
   return (
@@ -500,7 +747,16 @@ function DetailPanel({ inst, onPay }: { inst: InstallationRow; onPay: () => void
             {inst.vehicleDescription} · Next renewal {fmtDateFull(inst.nextRenewalDate)}
           </p>
         </div>
-        <StatusPill status={inst.status} isRenewalDue={inst.isRenewalDue} />
+        <div className="flex items-center gap-2">
+          {inst.deletedAt !== null ? (
+            <span className="inline-flex items-center rounded-full bg-error-light px-2.5 py-1 text-xs font-semibold text-error">
+              In Trash
+            </span>
+          ) : (
+            <StatusPill status={inst.status} isRenewalDue={inst.isRenewalDue} />
+          )}
+          <RowActions inst={inst} size="sm" onEdit={onEdit} />
+        </div>
       </div>
 
       {/* Remarks + installation date */}
@@ -544,6 +800,7 @@ function DetailPanel({ inst, onPay }: { inst: InstallationRow; onPay: () => void
             <FieldRow label="IMEI Number" value={inst.imeiNo} mono />
             <FieldRow label="Sim Number" value={inst.simNo} mono />
           </div>
+          <ImeiHistory entries={inst.imeiHistory} />
         </section>
 
         <section className="flex flex-col gap-2">
@@ -586,7 +843,7 @@ function DetailPanel({ inst, onPay }: { inst: InstallationRow; onPay: () => void
           </div>
         </div>
 
-        {owed > 0 && (
+        {owed > 0 && inst.deletedAt === null && (
           <button
             type="button"
             onClick={onPay}
@@ -655,6 +912,8 @@ function EmptyState({
       <div className="flex h-14 w-14 items-center justify-center rounded-[14px] bg-accent-light">
         {searching ? (
           <Search className="h-7 w-7 text-accent" />
+        ) : filter === "trash" ? (
+          <Trash2 className="h-7 w-7 text-accent" />
         ) : (
           <HardDrive className="h-7 w-7 text-accent" />
         )}
@@ -663,16 +922,20 @@ function EmptyState({
         <p className="text-[15px] font-semibold text-text-primary">
           {searching
             ? "Nothing matched that search"
-            : filter === "all"
-              ? "No installations yet"
-              : `No ${filter} installations`}
+            : filter === "trash"
+              ? "Trash is empty"
+              : filter === "all"
+                ? "No installations yet"
+                : `No ${filter} installations`}
         </p>
         <p className="mt-1 text-[13px] text-text-secondary">
           {searching
             ? "Check the registration number or IMEI, or clear the search."
-            : filter === "all"
-              ? "Record your first device installation to get started."
-              : "Change the filter to see other installations."}
+            : filter === "trash"
+              ? "Deleted installations show up here and can be restored."
+              : filter === "all"
+                ? "Record your first device installation to get started."
+                : "Change the filter to see other installations."}
         </p>
       </div>
       {filter === "all" && !searching && (

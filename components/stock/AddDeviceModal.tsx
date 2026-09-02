@@ -95,8 +95,8 @@ export function AddDeviceModal({ open, onClose, suppliers }: Props) {
                 <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
               </div>
               <p className="text-[12px] text-text-muted">
-                Every org has one Device pool and one Sim pool — this adds to
-                whichever one already exists rather than starting a new one
+                Whether this is a device or a sim — used to filter Stock and to
+                offer it in the right picker on an installation
               </p>
             </div>
 

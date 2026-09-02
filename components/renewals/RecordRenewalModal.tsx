@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
-import { recordRenewal, type RenewalActionState } from "@/actions/renewals";
+import { recordRenewal, updateRenewal, type RenewalActionState } from "@/actions/renewals";
 import { useActionToast } from "@/components/ui/ToastProvider";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 
@@ -30,12 +30,30 @@ export type PreFill = {
   net: string;
 };
 
+/** An already-recorded renewal, opened for correction rather than a new pick. */
+export type RenewalEditTarget = {
+  renewalId: string;
+  installationId: string;
+  customerName: string;
+  registrationNo: string;
+  accountId: string | null;
+  amount: string;
+  simOsting: string;
+  renewedAt: string;
+  otherNote: string;
+  /** Kept unchanged on save — editing corrects figures, not the due-date timeline. */
+  nextRenewalDate: string;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
   preFill: PreFill | null;
+  editTarget?: RenewalEditTarget | null;
   installationOptions: InstallationOption[];
   accounts: AccountOption[];
+  /** Current Sim sale price from Stock — what SIM & Osting defaults to on a new renewal. */
+  simSalePrice: string;
 };
 
 function todayIso(): string {
@@ -57,11 +75,14 @@ export function RecordRenewalModal({
   open,
   onClose,
   preFill,
+  editTarget = null,
   installationOptions,
   accounts,
+  simSalePrice,
 }: Props) {
+  const isEdit = editTarget !== null;
   const [state, formAction] = useActionState<RenewalActionState, FormData>(
-    recordRenewal,
+    isEdit ? updateRenewal : recordRenewal,
     null
   );
 
@@ -69,7 +90,7 @@ export function RecordRenewalModal({
 
   const [formKey, setFormKey] = useState(0);
 
-  // Customer + vehicle dropdowns — only used when there is no preFill
+  // Customer + vehicle dropdowns — only used when there is no preFill/editTarget
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [selectedInstId, setSelectedInstId] = useState("");
 
@@ -79,22 +100,36 @@ export function RecordRenewalModal({
 
   const carsForCustomer = installationOptions.filter((o) => o.customerName === selectedCustomer);
 
-  const resolved: PreFill | null = preFill ?? (() => {
-    const inst = installationOptions.find((o) => o.id === selectedInstId);
-    if (!inst) return null;
-    const dueIso = inst.nextRenewalDateIso.slice(0, 10);
-    return {
-      installationId: inst.id,
-      customerName: inst.customerName,
-      registrationNo: inst.registrationNo,
-      accountId: inst.accountId,
-      dueDateDisplay: dueIso,
-      nextRenewalDate: addOneYear(dueIso),
-      amount: inst.prefillAmount,
-      simOsting: inst.prefillSimOsting,
-      net: inst.prefillNet,
-    };
-  })();
+  const resolved: PreFill | null = editTarget
+    ? {
+        installationId: editTarget.installationId,
+        customerName: editTarget.customerName,
+        registrationNo: editTarget.registrationNo,
+        accountId: editTarget.accountId,
+        dueDateDisplay: "",
+        nextRenewalDate: editTarget.nextRenewalDate,
+        amount: editTarget.amount,
+        simOsting: editTarget.simOsting,
+        net: "0",
+      }
+    : preFill ?? (() => {
+        const inst = installationOptions.find((o) => o.id === selectedInstId);
+        if (!inst) return null;
+        const dueIso = inst.nextRenewalDateIso.slice(0, 10);
+        return {
+          installationId: inst.id,
+          customerName: inst.customerName,
+          registrationNo: inst.registrationNo,
+          accountId: inst.accountId,
+          dueDateDisplay: dueIso,
+          nextRenewalDate: addOneYear(dueIso),
+          amount: inst.prefillAmount,
+          // The Sim's current sale price in Stock, not the last renewal's own
+          // figure — a price change should be reflected on the next renewal
+          simOsting: simSalePrice,
+          net: inst.prefillNet,
+        };
+      })();
 
   const [amount, setAmount] = useState("");
   const [simOsting, setSimOsting] = useState("");
@@ -132,7 +167,7 @@ export function RecordRenewalModal({
     setAmount(resolved?.amount ?? "");
     setSimOsting(resolved?.simOsting ?? "0");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolved?.installationId]);
+  }, [resolved?.installationId, editTarget?.renewalId]);
 
   if (!open) return null;
 
@@ -149,7 +184,7 @@ export function RecordRenewalModal({
           <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-6 py-5">
             <div>
               <h2 className="font-display text-[17px] font-semibold text-text-primary">
-                Record renewal
+                {isEdit ? "Edit renewal" : "Record renewal"}
               </h2>
               <p className="mt-0.5 text-[13px] text-text-secondary">
                 Required fields are marked with{" "}
@@ -172,8 +207,21 @@ export function RecordRenewalModal({
             {resolved && (
               <input type="hidden" name="installationId" value={resolved.installationId} />
             )}
+            {editTarget && (
+              <input type="hidden" name="renewalId" value={editTarget.renewalId} />
+            )}
 
-            {preFill ? (
+            {editTarget ? (
+              <div className="rounded-[12px] border border-border bg-surface-muted px-4 py-3.5">
+                <p className="text-[13px] font-semibold text-text-primary">{editTarget.customerName}</p>
+                <p className="mt-0.5 font-mono text-[12px] text-text-secondary">
+                  {editTarget.registrationNo}
+                </p>
+                <p className="mt-1 text-[12px] text-text-muted">
+                  Corrects this renewal's figures — the due date it advanced to is not changed
+                </p>
+              </div>
+            ) : preFill ? (
               <div className="rounded-[12px] border border-border bg-surface-muted px-4 py-3.5">
                 <p className="text-[13px] font-semibold text-text-primary">{preFill.customerName}</p>
                 <p className="mt-0.5 font-mono text-[12px] text-text-secondary">
@@ -238,33 +286,51 @@ export function RecordRenewalModal({
             )}
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-text-primary">
-                  Payment date <span className="text-error">*</span>
-                </label>
-                <input
-                  name="renewedAt"
-                  type="date"
-                  defaultValue={todayIso()}
-                  required
-                  className={INPUT}
-                />
+            {isEdit ? (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-medium text-text-primary">
+                    Payment date <span className="text-error">*</span>
+                  </label>
+                  <input
+                    name="renewedAt"
+                    type="date"
+                    defaultValue={editTarget?.renewedAt ?? todayIso()}
+                    required
+                    className={INPUT}
+                  />
+                </div>
+                <input type="hidden" name="nextRenewalDate" value={editTarget?.nextRenewalDate ?? ""} />
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-medium text-text-primary">
+                    Payment date <span className="text-error">*</span>
+                  </label>
+                  <input
+                    name="renewedAt"
+                    type="date"
+                    defaultValue={todayIso()}
+                    required
+                    className={INPUT}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-medium text-text-primary">
+                    Next renewal <span className="text-error">*</span>
+                  </label>
+                  <input
+                    name="nextRenewalDate"
+                    type="date"
+                    defaultValue={resolved?.nextRenewalDate ?? ""}
+                    key={`next-${resolved?.installationId ?? "none"}`}
+                    required
+                    className={INPUT}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-medium text-text-primary">
-                  Next renewal <span className="text-error">*</span>
-                </label>
-                <input
-                  name="nextRenewalDate"
-                  type="date"
-                  defaultValue={resolved?.nextRenewalDate ?? ""}
-                  key={`next-${resolved?.installationId ?? "none"}`}
-                  required
-                  className={INPUT}
-                />
-              </div>
-            </div>
+            )}
 
             {/* Payment method */}
             {accounts.length > 0 && (
@@ -342,6 +408,8 @@ export function RecordRenewalModal({
                 <input
                   name="otherNote"
                   type="text"
+                  defaultValue={editTarget?.otherNote ?? ""}
+                  key={`note-${editTarget?.renewalId ?? "none"}`}
                   placeholder="Optional note"
                   className={INPUT}
                 />
@@ -367,7 +435,7 @@ export function RecordRenewalModal({
                   boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
                 }}
               >
-                Mark as received
+                {isEdit ? "Save changes" : "Mark as received"}
               </SubmitButton>
             </div>
           </form>

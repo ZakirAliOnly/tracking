@@ -33,12 +33,18 @@ export default async function RenewalsPage({ searchParams }: Props) {
   const range =
     from && to && from > to ? { from: to, to: from } : { from, to };
 
-  const [{ rows, total, dueSoonCount }, rawAccounts] = await Promise.all([
+  const [{ rows, total, dueSoonCount }, rawAccounts, simStockLine] = await Promise.all([
     fetchRenewalRows(orgId, filter, range, page),
     prisma.account.findMany({
       where: { orgId, isActive: true },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+    }),
+    // The one bulk Sim pool — its sale price is what SIM & Osting defaults to,
+    // rather than the last renewal's own figure, per Stock's current price
+    prisma.device.findFirst({
+      where: { orgId, type: "sim", imeiNo: null },
+      select: { salePrice: true },
     }),
   ]);
 
@@ -46,6 +52,8 @@ export default async function RenewalsPage({ searchParams }: Props) {
     id: a.id,
     name: a.name,
   }));
+
+  const simSalePrice = simStockLine?.salePrice?.toString() ?? "0";
 
   return (
     <div className="p-6">
@@ -64,6 +72,7 @@ export default async function RenewalsPage({ searchParams }: Props) {
         <RenewalsView
           rows={rows}
           accounts={accountOptions}
+          simSalePrice={simSalePrice}
           filter={filter}
           page={page}
           total={total}

@@ -14,6 +14,7 @@ export type DashboardData = {
     revenue: number;
     renewalsDue30d: number;
     stockCount: number;
+    simStockCount: number;
   };
   chartData: ChartPoint[];
   vehicleMakes: Array<{ make: string; count: number; pct: number }>;
@@ -68,11 +69,11 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
       recentRenewals,
     ] = await Promise.all([
       // 1. Active installations
-      prisma.installation.count({ where: { orgId, status: "active" } }),
+      prisma.installation.count({ where: { orgId, status: "active", deletedAt: null } }),
 
       // 2. Revenue: installations in period
       prisma.installation.aggregate({
-        where: { orgId, installationDate: { gte: start, lte: end } },
+        where: { orgId, deletedAt: null, installationDate: { gte: start, lte: end } },
         _sum: { devicePayment: true },
       }),
 
@@ -82,8 +83,9 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
         _sum: { amount: true, simOsting: true, net: true, other: true },
       }),
 
-      // 4. Stock count
-      prisma.device.aggregate({
+      // 4. Stock count, split by pool (device vs sim)
+      prisma.device.groupBy({
+        by: ["type"],
         where: { orgId, status: "in_stock" },
         _sum: { quantity: true },
       }),
@@ -100,6 +102,7 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
         ) r ON r.installation_id = i.id
         WHERE i.org_id = ${orgId}
           AND i.status = 'active'
+          AND i.deleted_at IS NULL
           AND COALESCE(r.latest, i.next_renewal_date)
               BETWEEN ${today}::date AND ${in30d}::date
       `,
@@ -112,6 +115,7 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
           COALESCE(SUM(device_payment), 0)::float AS revenue
         FROM installations
         WHERE org_id = ${orgId}
+          AND deleted_at IS NULL
           AND installation_date >= DATE_TRUNC('month', NOW()) - INTERVAL '5 months'
         GROUP BY month_start, month
         ORDER BY month_start
@@ -137,6 +141,7 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
         FROM installations i
         JOIN vehicles v ON v.id = i.vehicle_id
         WHERE i.org_id = ${orgId}
+          AND i.deleted_at IS NULL
           AND v.make IS NOT NULL AND v.make <> ''
         GROUP BY v.make
         ORDER BY cnt DESC
@@ -145,7 +150,7 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
 
       // 9. Recent installations
       prisma.installation.findMany({
-        where: { orgId },
+        where: { orgId, deletedAt: null },
         orderBy: { installationDate: "desc" },
         take: 6,
         include: {
@@ -225,13 +230,17 @@ export async function fetchDashboardData(period: Period = "month"): Promise<Dash
     }
     activity.sort((a, b) => b.time.localeCompare(a.time));
 
+    const deviceStock = stockAgg.find((g) => g.type === "device")?._sum.quantity ?? 0;
+    const simStock = stockAgg.find((g) => g.type === "sim")?._sum.quantity ?? 0;
+
     return {
       period,
       kpi: {
         activeInstallations: activeInstallations,
         revenue: installRev + renewalRev,
         renewalsDue30d: Number(renewalsDueRaw[0]?.count ?? 0),
-        stockCount: Number(stockAgg._sum.quantity ?? 0),
+        stockCount: Number(deviceStock),
+        simStockCount: Number(simStock),
       },
       chartData,
       vehicleMakes,

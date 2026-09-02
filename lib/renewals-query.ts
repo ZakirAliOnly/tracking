@@ -62,10 +62,14 @@ type RawRow = {
   customer_name: string;
   registration_no: string;
   account_name: string | null;
+  last_renewal_id: string | null;
   last_amount: Prisma.Decimal | null;
   last_sim_osting: Prisma.Decimal | null;
   last_net: Prisma.Decimal | null;
   last_other: Prisma.Decimal | null;
+  last_renewed_at: Date | null;
+  last_other_note: string | null;
+  last_next_renewal_date: Date | null;
   days_until_due: number;
   status: RenewalStatus;
 };
@@ -73,6 +77,9 @@ type RawRow = {
 function toRow(r: RawRow): RenewalRow {
   return {
     installationId: r.id,
+    // Only meaningful when status is "received" — the latest renewal record
+    // this row is actually showing, so Edit/Delete/Print know what to act on
+    renewalId: r.last_renewal_id,
     customerName: r.customer_name,
     registrationNo: r.registration_no,
     dueDateIso: r.next_renewal_date.toISOString(),
@@ -88,6 +95,9 @@ function toRow(r: RawRow): RenewalRow {
     prefillSimOsting: r.last_sim_osting?.toString() ?? r.sim_payment.toString(),
     prefillNet: r.last_net?.toString() ?? r.net_payment.toString(),
     nextRenewalDateIso: r.next_renewal_date.toISOString(),
+    lastRenewedAtIso: r.last_renewed_at?.toISOString() ?? null,
+    lastOtherNote: r.last_other_note,
+    lastNextRenewalDateIso: r.last_next_renewal_date?.toISOString() ?? null,
   };
 }
 
@@ -117,10 +127,14 @@ export async function fetchRenewalRows(
           c.name AS customer_name,
           v.registration_no,
           a.name AS account_name,
+          lr.id AS last_renewal_id,
           lr.amount AS last_amount,
           lr.sim_osting AS last_sim_osting,
           lr.net AS last_net,
           lr.other AS last_other,
+          lr.renewed_at AS last_renewed_at,
+          lr.other_note AS last_other_note,
+          lr.next_renewal_date AS last_next_renewal_date,
           (lr.received IS TRUE AND lr.next_renewal_date = i.next_renewal_date) AS is_received,
           (i.next_renewal_date::date - ${todayParam()}::date) AS days_until_due
         FROM installations i
@@ -128,7 +142,7 @@ export async function fetchRenewalRows(
         JOIN vehicles v ON v.id = i.vehicle_id
         LEFT JOIN accounts a ON a.id = i.account_id
         LEFT JOIN latest_renewal lr ON lr.installation_id = i.id
-        WHERE i.org_id = ${orgId} AND i.status = 'active'
+        WHERE i.org_id = ${orgId} AND i.status = 'active' AND i.deleted_at IS NULL
       )
       SELECT *,
         CASE
@@ -155,7 +169,7 @@ export async function fetchRenewalRows(
           (i.next_renewal_date::date - ${todayParam()}::date) AS days_until_due
         FROM installations i
         LEFT JOIN latest_renewal lr ON lr.installation_id = i.id
-        WHERE i.org_id = ${orgId} AND i.status = 'active'
+        WHERE i.org_id = ${orgId} AND i.status = 'active' AND i.deleted_at IS NULL
       )
       SELECT COUNT(*) AS count FROM base WHERE ${whereFor(filter, range)}
     `),
@@ -175,7 +189,7 @@ export async function fetchRenewalRows(
           (i.next_renewal_date::date - ${todayParam()}::date) AS days_until_due
         FROM installations i
         LEFT JOIN latest_renewal lr ON lr.installation_id = i.id
-        WHERE i.org_id = ${orgId} AND i.status = 'active'
+        WHERE i.org_id = ${orgId} AND i.status = 'active' AND i.deleted_at IS NULL
       )
       SELECT COUNT(*) AS count FROM base
       WHERE NOT is_received AND days_until_due <= ${RENEWAL_REMINDER_DAYS}
