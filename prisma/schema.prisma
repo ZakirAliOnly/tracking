@@ -17,6 +17,8 @@ model Organization {
   suppliers        Supplier[]
   accounts         Account[]
   installations    Installation[]
+  installationPayments InstallationPayment[]
+  imeiChangeLogs   ImeiChangeLog[]
   renewals         Renewal[]
   expenses         Expense[]
   notifications    Notification[]
@@ -148,6 +150,7 @@ model Account {
   createdAt        DateTime          @default(now()) @map("created_at")
   organization     Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   installations    Installation[]
+  installationPayments InstallationPayment[]
   renewals         Renewal[]
   expenses         Expense[]
   supplierPayments SupplierPayment[]
@@ -186,6 +189,11 @@ model Installation {
   amountPaid       Decimal      @default(0) @map("amount_paid") @db.Decimal(12, 2)
   nextRenewalDate  DateTime     @map("next_renewal_date") @db.Date
   status           String       @default("active")
+  /// Soft delete — set instead of a real row delete so a trashed installation
+  /// (and its renewals/payments/device lines, all left intact) can be
+  /// restored later. Every list/aggregate query must filter deletedAt: null;
+  /// only the Trash view and permanent-delete are allowed to see past it.
+  deletedAt        DateTime?    @map("deleted_at")
   createdAt        DateTime     @default(now()) @map("created_at")
   organization     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   customer         Customer     @relation(fields: [customerId], references: [id])
@@ -194,8 +202,50 @@ model Installation {
   account          Account?     @relation(fields: [accountId], references: [id])
   renewals         Renewal[]
   devices          InstallationDevice[]
+  payments         InstallationPayment[]
+  imeiChanges      ImeiChangeLog[]
 
   @@map("installations")
+}
+
+/// One IMEI change on an installation — written automatically whenever a
+/// write supplies an imeiNo different from what was already stored, whether
+/// that write came from the New Installation/Edit form or the CSV import
+/// (both converge on `writeInstallation`). Append-only audit trail; nothing
+/// ever edits or deletes a row here.
+model ImeiChangeLog {
+  id             String       @id @default(uuid())
+  orgId          String       @map("org_id")
+  installationId String       @map("installation_id")
+  oldImei        String?      @map("old_imei")
+  newImei        String?      @map("new_imei")
+  changedAt      DateTime     @default(now()) @map("changed_at")
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  installation   Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@map("imei_change_logs")
+}
+
+/// One discrete payment event against an installation — the amount paid at
+/// creation time (if any) plus every later "Pay remaining" top-up. Payment
+/// Methods sums these to get an account's balance instead of guessing from
+/// `installations.total_amount`, which cannot tell partial payments apart
+/// from full ones or say which account each individual payment went to.
+model InstallationPayment {
+  id             String       @id @default(uuid())
+  orgId          String       @map("org_id")
+  installationId String       @map("installation_id")
+  accountId      String?      @map("account_id")
+  amount         Decimal      @db.Decimal(12, 2)
+  paidAt         DateTime     @default(now()) @map("paid_at")
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  installation   Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  account        Account?     @relation(fields: [accountId], references: [id])
+
+  @@index([installationId])
+  @@index([accountId])
+  @@map("installation_payments")
 }
 
 /// Every device fitted on an installation. `installations.device_id` still holds

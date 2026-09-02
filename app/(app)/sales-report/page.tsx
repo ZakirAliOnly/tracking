@@ -31,6 +31,7 @@ export default async function SalesReportPage({ searchParams }: Props) {
   // rather than a snapshot of the book
   const where: Prisma.InstallationWhereInput = {
     orgId,
+    deletedAt: null,
     ...(range.from || range.to
       ? {
           installationDate: {

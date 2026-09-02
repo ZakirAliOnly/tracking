@@ -218,10 +218,19 @@ export async function writeInstallation(
     ...(record.devices === undefined ? {} : { deviceId: record.devices[0]?.deviceId ?? null }),
   };
 
-  // One vehicle carries one installation, so re-entering it updates in place
+  // One vehicle carries one non-trashed installation, so re-entering it
+  // updates in place. A trashed installation on this vehicle is deliberately
+  // not matched here — it must come back through Restore, not be silently
+  // resurrected by a new form save or CSV re-import landing on top of it
   const existing = await tx.installation.findFirst({
-    where: { orgId, vehicleId: vehicle.id },
-    select: { id: true, devices: { select: { deviceId: true, quantity: true, unitPrice: true } } },
+    where: { orgId, vehicleId: vehicle.id, deletedAt: null },
+    select: {
+      id: true,
+      amountPaid: true,
+      accountId: true,
+      imeiNo: true,
+      devices: { select: { deviceId: true, quantity: true, unitPrice: true } },
+    },
   });
 
   const installationId = existing
@@ -246,6 +255,39 @@ export async function writeInstallation(
           select: { id: true },
         })
       ).id;
+
+  // A record for the money that actually moved on this write — Payment
+  // Methods sums these rather than guessing from total_amount, which cannot
+  // tell a part payment from a full one or say which account it went to.
+  // Only the *increase* is recorded, since this same write path also handles
+  // edits (re-entering a registration updates in place): saving an edit that
+  // leaves Amount Paid unchanged must not double-count the original payment,
+  // and lowering it (a correction) records nothing rather than a negative row.
+  if (record.amountPaid !== undefined) {
+    const before = existing ? Number(existing.amountPaid) : 0;
+    const delta = Math.round((record.amountPaid - before) * 100) / 100;
+    if (delta > 0) {
+      const effectiveAccountId =
+        record.accountId !== undefined ? record.accountId : existing?.accountId ?? null;
+      await tx.installationPayment.create({
+        data: { orgId, installationId, accountId: effectiveAccountId, amount: delta },
+      });
+    }
+  }
+
+  // An append-only trail of every IMEI change — on by the same rule as
+  // everywhere else here: only when the caller actually supplied an opinion
+  // (`imeiNo !== undefined`), and only when it is genuinely different from
+  // what was already stored (re-saving the same value logs nothing).
+  if (record.imeiNo !== undefined) {
+    const before = existing?.imeiNo ?? null;
+    const after = record.imeiNo ?? null;
+    if (before !== after) {
+      await tx.imeiChangeLog.create({
+        data: { orgId, installationId, oldImei: before, newImei: after },
+      });
+    }
+  }
 
   if (record.devices !== undefined) {
     const previous: DeviceLine[] = (existing?.devices ?? []).map((d) => ({

@@ -114,7 +114,7 @@ export function EditDeviceModal({ open, onClose, device }: Props) {
                 {device?.fmModule ?? "—"}
                 {device && (
                   <span className="ml-1.5 text-text-muted">
-                    · {device.type === "sim" ? "Sim" : "Device"} pool
+                    · {device.type === "sim" ? "Sim" : "Device"}
                   </span>
                 )}
               </p>

@@ -14,7 +14,7 @@ import type { InstallableDevice } from "@/lib/device-options";
 export async function listInstallableDevices(orgId: string): Promise<InstallableDevice[]> {
   const devices = await prisma.device.findMany({
     where: { orgId, status: "in_stock" },
-    select: { id: true, fmModule: true, imeiNo: true, salePrice: true, quantity: true },
+    select: { id: true, fmModule: true, imeiNo: true, salePrice: true, quantity: true, type: true },
     orderBy: { fmModule: "asc" },
   });
 
@@ -23,27 +23,30 @@ export async function listInstallableDevices(orgId: string): Promise<Installable
     name: d.fmModule ?? d.imeiNo ?? "Device",
     salePrice: d.salePrice?.toString() ?? null,
     quantity: d.quantity,
+    type: d.type === "sim" ? "sim" : "device",
   }));
 }
 
 export type StockType = "device" | "sim";
 
 /**
- * The org's one bulk Device pool or one bulk Sim pool — chosen on Stock via
- * the Add device Type dropdown, not by name, so renaming a stock line or
- * adding a second one of the same type can never split the pool CSV import
- * draws from. `imeiNo: null` keeps this scoped to the bulk line even though
- * legacy per-unit rows may share the same type. Created with 0 units the
- * first time something needs a pool that does not exist yet, so the very
- * first import or entry on a fresh org still works.
+ * The stock line CSV import's Device Qty / Sim Qty columns draw from, since
+ * the sheet has no column naming which specific device or sim was used. Picks
+ * whichever line of that type was added first; creates one with 0 units the
+ * first time an org with no stock of that type yet needs one, so the very
+ * first import still works.
  */
 export async function resolveStockLineByType(
   tx: Prisma.TransactionClient,
   orgId: string,
   type: StockType
 ): Promise<string> {
+  // Multiple named devices/sims can exist now — the sheet has no device-name
+  // column to tell them apart, so Device Qty/Sim Qty draw from the oldest
+  // matching line rather than a single dedicated pool
   const existing = await tx.device.findFirst({
-    where: { orgId, type, imeiNo: null },
+    where: { orgId, type },
+    orderBy: { createdAt: "asc" },
     select: { id: true },
   });
   if (existing) return existing.id;

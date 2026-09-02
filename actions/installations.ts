@@ -73,9 +73,32 @@ export async function createInstallations(
     const account = await resolvePayingAccount(orgId, input.accountId, moneyIn, "in");
     if (!account.ok) return { success: false, error: account.error };
 
+    // Editing reuses this same action (registration number upserts in place).
+    // Stock already has this installation's current units subtracted out, so
+    // checking availability as-is would wrongly refuse re-selecting the same
+    // device — a negative "reserved" hands those units back before checking
+    // Only a non-trashed installation counts as "existing" here — a trashed
+    // one must be brought back through Restore, not silently resurrected by
+    // re-entering its registration number on this form
+    const existingVehicle = await prisma.vehicle.findFirst({
+      where: { orgId, registrationNo: { equals: input.registrationNo, mode: "insensitive" } },
+      select: {
+        installations: {
+          where: { deletedAt: null },
+          select: { devices: { select: { deviceId: true, quantity: true } } },
+        },
+      },
+    });
+    const heldByThisInstallation = new Map<string, number>();
+    for (const line of existingVehicle?.installations[0]?.devices ?? []) {
+      const current = heldByThisInstallation.get(line.deviceId) ?? 0;
+      heldByThisInstallation.set(line.deviceId, current - line.quantity);
+    }
+
     const devices = await resolveInstallationDevices(
       orgId,
-      toDeviceLines(input.deviceIds, input.deviceQuantities)
+      toDeviceLines(input.deviceIds, input.deviceQuantities),
+      heldByThisInstallation
     );
     if (!devices.ok) return { success: false, error: devices.error };
 
@@ -140,6 +163,177 @@ export async function createInstallations(
 }
 
 /**
+ * Deletes an installation entirely, along with its renewal history and
+ * fitted-device lines. Any devices still fitted are returned to Stock first —
+ * the same `moveStock` logic a form edit uses, just against an empty "next"
+ * list — so deleting a record never leaves stock silently short.
+ */
+/**
+ * Soft-deletes an installation — sets `deletedAt` rather than removing the
+ * row, so it (and its renewal history, payments and device lines, all left
+ * untouched) can be restored later from the Trash view. Fitted devices are
+ * returned to Stock immediately, since a trashed installation is not an
+ * active job and those units should not sit idle and unusable; restoring
+ * re-deducts them, refusing if that stock is no longer available.
+ */
+export async function trashInstallation(
+  _prevState: InstallationActionState,
+  formData: FormData
+): Promise<InstallationActionState> {
+  try {
+    const session = await auth();
+    if (!session) return { success: false, error: "Unauthorized" };
+    const { orgId } = session.user;
+
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { success: false, error: "Installation is required." };
+
+    const installation = await prisma.installation.findFirst({
+      where: { id, orgId, deletedAt: null },
+      select: {
+        id: true,
+        devices: { select: { deviceId: true, quantity: true } },
+      },
+    });
+    if (!installation) return { success: false, error: "That installation was not found." };
+
+    await prisma.$transaction(async (tx) => {
+      for (const line of installation.devices) {
+        await tx.device.updateMany({
+          where: { id: line.deviceId, orgId },
+          data: { quantity: { increment: line.quantity } },
+        });
+      }
+      await tx.installation.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+    });
+
+    revalidatePath("/installations");
+    revalidatePath("/customers");
+    revalidatePath("/renewals");
+    revalidatePath("/payment-methods");
+    revalidatePath("/stock");
+    revalidatePath("/sales-report");
+    return { success: true };
+  } catch (error) {
+    console.error("[actions/installations/trash]", error);
+    return { success: false, error: "Failed to delete the installation. Please try again." };
+  }
+}
+
+/**
+ * Brings a trashed installation back — clears `deletedAt` and re-deducts its
+ * fitted devices from Stock, exactly as if they were being fitted again.
+ * Refuses cleanly (leaving it in Trash) if any of those units are no longer
+ * available, rather than restoring a job that Stock cannot actually support.
+ */
+export async function restoreInstallation(
+  _prevState: InstallationActionState,
+  formData: FormData
+): Promise<InstallationActionState> {
+  try {
+    const session = await auth();
+    if (!session) return { success: false, error: "Unauthorized" };
+    const { orgId } = session.user;
+
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { success: false, error: "Installation is required." };
+
+    const installation = await prisma.installation.findFirst({
+      where: { id, orgId, deletedAt: { not: null } },
+      select: {
+        id: true,
+        devices: { select: { deviceId: true, quantity: true } },
+      },
+    });
+    if (!installation) return { success: false, error: "That installation was not found in Trash." };
+
+    await prisma.$transaction(async (tx) => {
+      for (const line of installation.devices) {
+        const device = await tx.device.findFirst({
+          where: { id: line.deviceId, orgId },
+          select: { fmModule: true, quantity: true },
+        });
+        if (!device || device.quantity < line.quantity) {
+          throw new Error(
+            `Not enough stock to restore this installation — ${device?.fmModule ?? "one of its devices"} is short ${line.quantity - (device?.quantity ?? 0)} unit(s).`
+          );
+        }
+      }
+      for (const line of installation.devices) {
+        await tx.device.updateMany({
+          where: { id: line.deviceId, orgId },
+          data: { quantity: { decrement: line.quantity } },
+        });
+      }
+      await tx.installation.update({
+        where: { id },
+        data: { deletedAt: null },
+      });
+    });
+
+    revalidatePath("/installations");
+    revalidatePath("/customers");
+    revalidatePath("/renewals");
+    revalidatePath("/payment-methods");
+    revalidatePath("/stock");
+    revalidatePath("/sales-report");
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    console.error("[actions/installations/restore]", error);
+    return {
+      success: false,
+      error: message.startsWith("Not enough stock")
+        ? message
+        : "Failed to restore the installation. Please try again.",
+    };
+  }
+}
+
+/**
+ * The real, permanent delete — only reachable from the Trash view, and only
+ * on an already-trashed installation. Cascades away its renewal history,
+ * payment records and device lines for good; there is no undo past this.
+ * Stock is not touched here since trashing already returned those units.
+ */
+export async function permanentlyDeleteInstallation(
+  _prevState: InstallationActionState,
+  formData: FormData
+): Promise<InstallationActionState> {
+  try {
+    const session = await auth();
+    if (!session) return { success: false, error: "Unauthorized" };
+    const { orgId } = session.user;
+
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { success: false, error: "Installation is required." };
+
+    const installation = await prisma.installation.findFirst({
+      where: { id, orgId, deletedAt: { not: null } },
+      select: { id: true },
+    });
+    if (!installation) return { success: false, error: "That installation was not found in Trash." };
+
+    await prisma.$transaction([
+      // Renewal has no cascade on installation_id (unlike InstallationPayment
+      // and ImeiChangeLog, which do) — deleted explicitly so the FK does not
+      // block the installation row itself from going away
+      prisma.renewal.deleteMany({ where: { installationId: id, orgId } }),
+      prisma.installation.delete({ where: { id } }),
+    ]);
+
+    revalidatePath("/installations");
+    return { success: true };
+  } catch (error) {
+    console.error("[actions/installations/permanent-delete]", error);
+    return { success: false, error: "Failed to permanently delete the installation. Please try again." };
+  }
+}
+
+/**
  * Records a further payment against an installation's outstanding balance.
  *
  * The ceiling is recomputed here from the stored figures rather than trusting
@@ -166,7 +360,11 @@ export async function searchInstallationsByReg(query: string): Promise<SaleSearc
   if (!q) return [];
 
   const rows = await prisma.installation.findMany({
-    where: { orgId, vehicle: { registrationNo: { contains: q, mode: "insensitive" } } },
+    where: {
+      orgId,
+      deletedAt: null,
+      vehicle: { registrationNo: { contains: q, mode: "insensitive" } },
+    },
     select: {
       id: true,
       installationPay: true,
@@ -223,7 +421,7 @@ export async function updateSaleAmounts(
     }
 
     const installation = await prisma.installation.findFirst({
-      where: { id, orgId },
+      where: { id, orgId, deletedAt: null },
       select: { id: true },
     });
     if (!installation) return { success: false, error: "That installation was not found." };
@@ -261,7 +459,7 @@ export async function payInstallationBalance(
     }
 
     const installation = await prisma.installation.findFirst({
-      where: { id, orgId },
+      where: { id, orgId, deletedAt: null },
       select: { id: true, totalAmount: true, discount: true, amountPaid: true },
     });
     if (!installation) return { success: false, error: "That installation was not found." };
@@ -281,12 +479,24 @@ export async function payInstallationBalance(
       };
     }
 
+    // Money is always moving here (amount > 0 was already checked above), so
+    // a method is required as soon as the org has any to choose from — same
+    // rule as the entry forms' resolvePayingAccount, just always in the "in" branch
+    const accountId = String(formData.get("accountId") ?? "") || null;
+    const account = await resolvePayingAccount(orgId, accountId, amount, "in");
+    if (!account.ok) return { success: false, error: account.error };
+
     const nowPaid = Math.round((alreadyPaid + amount) * 100) / 100;
 
-    await prisma.installation.update({
-      where: { id: installation.id },
-      data: { amountPaid: nowPaid, received: nowPaid >= payable },
-    });
+    await prisma.$transaction([
+      prisma.installation.update({
+        where: { id: installation.id },
+        data: { amountPaid: nowPaid, received: nowPaid >= payable },
+      }),
+      prisma.installationPayment.create({
+        data: { orgId, installationId: installation.id, accountId: account.accountId, amount },
+      }),
+    ]);
 
     revalidatePath("/installations");
     revalidatePath("/customers");

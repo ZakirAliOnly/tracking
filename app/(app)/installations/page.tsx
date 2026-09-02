@@ -12,12 +12,15 @@ import { RENEWAL_REMINDER_DAYS } from "@/lib/utils";
 import { pageWindow, parsePage } from "@/lib/pagination";
 import type { Prisma } from "@prisma/client";
 
-type Filter = "all" | "active" | "suspended";
+type Filter = "all" | "active" | "suspended" | "trash";
 
 function whereForFilter(orgId: string, filter: Filter): Prisma.InstallationWhereInput {
-  if (filter === "active") return { orgId, status: { not: "suspended" } };
-  if (filter === "suspended") return { orgId, status: "suspended" };
-  return { orgId };
+  // Trash is the one filter that deliberately looks past deletedAt — every
+  // other tab and every search on this page excludes trashed installations
+  if (filter === "trash") return { orgId, deletedAt: { not: null } };
+  if (filter === "active") return { orgId, status: { not: "suspended" }, deletedAt: null };
+  if (filter === "suspended") return { orgId, status: "suspended", deletedAt: null };
+  return { orgId, deletedAt: null };
 }
 
 /**
@@ -71,7 +74,9 @@ export default async function InstallationsPage({ searchParams }: Props) {
   const sp = await searchParams;
 
   const filter: Filter =
-    sp.status === "active" || sp.status === "suspended" ? sp.status : "all";
+    sp.status === "active" || sp.status === "suspended" || sp.status === "trash"
+      ? sp.status
+      : "all";
   const page = parsePage(sp.page);
   const query = (sp.q ?? "").trim();
 
@@ -91,10 +96,11 @@ export default async function InstallationsPage({ searchParams }: Props) {
           select: {
             name: true,
             phone: true,
+            address: true,
             remarks: true,
             // Feeds the search lookup card's Contact Information panel
             contacts: {
-              select: { name: true, mobile: true },
+              select: { name: true, mobile: true, position: true },
               orderBy: { position: "asc" },
             },
           },
@@ -102,6 +108,7 @@ export default async function InstallationsPage({ searchParams }: Props) {
         vehicle: {
           select: {
             registrationNo: true,
+            description: true,
             make: true,
             model: true,
             engineNo: true,
@@ -118,13 +125,18 @@ export default async function InstallationsPage({ searchParams }: Props) {
             cutOff: true,
           },
         },
-        account: { select: { name: true } },
+        account: { select: { id: true, name: true } },
         devices: {
           select: {
+            deviceId: true,
             quantity: true,
             unitPrice: true,
-            device: { select: { fmModule: true, imeiNo: true } },
+            device: { select: { fmModule: true, imeiNo: true, type: true } },
           },
+        },
+        imeiChanges: {
+          select: { oldImei: true, newImei: true, changedAt: true },
+          orderBy: { changedAt: "desc" },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -167,9 +179,11 @@ export default async function InstallationsPage({ searchParams }: Props) {
       discount: i.discount.toString(),
       amountPaid: i.amountPaid.toString(),
       fittedDevices: i.devices.map((d) => ({
+        deviceId: d.deviceId,
         name: d.device.fmModule ?? d.device.imeiNo ?? "Device",
         quantity: d.quantity,
         unitPrice: d.unitPrice.toString(),
+        type: d.device.type === "sim" ? ("sim" as const) : ("device" as const),
       })),
       // The installation's own reference text wins where it has any — that is
       // what the New installation form writes. `device` is the legacy single
@@ -184,10 +198,31 @@ export default async function InstallationsPage({ searchParams }: Props) {
       colour: i.vehicle.colour,
       installationDate: i.installationDate.toISOString(),
       totalAmount: i.totalAmount?.toString() ?? null,
+      accountId: i.account?.id ?? null,
       accountName: i.account?.name ?? null,
       nextRenewalDate: i.nextRenewalDate.toISOString(),
       status: i.status,
       isRenewalDue: i.status === "active" && i.nextRenewalDate <= soonCutoff,
+      deletedAt: i.deletedAt?.toISOString() ?? null,
+      imeiHistory: i.imeiChanges.map((c) => ({
+        oldImei: c.oldImei,
+        newImei: c.newImei,
+        changedAt: c.changedAt.toISOString(),
+      })),
+      // Edit-only fields — not shown in the read-only detail card, only used
+      // to pre-fill the New installation form when it is reused for editing
+      edit: {
+        phone: i.customer.phone,
+        address: i.customer.address,
+        carDescription: i.vehicle.description,
+        make: i.vehicle.make,
+        model: i.vehicle.model,
+        contacts: i.customer.contacts.map((c) => ({
+          name: c.name,
+          mobile: c.mobile,
+          position: c.position,
+        })),
+      },
     };
   });
 

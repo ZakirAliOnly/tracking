@@ -11,6 +11,7 @@ import {
   newDeviceLine,
   type DeviceLineDraft,
 } from "@/components/installations/DeviceLines";
+import { SimPicker, simAmountOf } from "@/components/installations/SimPicker";
 import { PaymentSummary } from "@/components/installations/PaymentSummary";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { AccountOption } from "@/lib/accounts";
@@ -18,6 +19,30 @@ import type { InstallableDevice } from "@/lib/device-options";
 import { resolvePayment, type DiscountMode } from "@/lib/installation-money";
 
 export type CustomerOption = { id: string; name: string };
+
+export type EditTarget = {
+  customerName: string;
+  registrationNo: string;
+  installationDate: string;
+  fittedDevices: { deviceId: string; quantity: number; type: "device" | "sim" }[];
+  amount: string;
+  discount: string;
+  amountPaid: string;
+  accountId: string | null;
+  phone: string;
+  address: string | null;
+  contacts: { name: string; mobile: string; position: number }[];
+  carDescription: string | null;
+  make: string | null;
+  model: string | null;
+  engineNo: string | null;
+  chassisNo: string | null;
+  colour: string | null;
+  gsmNo: string | null;
+  fmModule: string | null;
+  cutOff: string | null;
+  imeiNo: string | null;
+};
 
 const INPUT =
   "h-10 rounded-[9px] border border-border bg-surface px-3 text-[13px] text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-light transition-colors";
@@ -38,9 +63,28 @@ type Props = {
   customers: CustomerOption[];
   accounts: AccountOption[];
   devices: InstallableDevice[];
+  /** Present only when reusing this form to edit an existing installation. */
+  editTarget?: EditTarget | null;
 };
 
-export function NewInstallationModal({ open, onClose, customers, accounts, devices }: Props) {
+function deviceLinesFrom(fitted: EditTarget["fittedDevices"] | undefined): DeviceLineDraft[] {
+  const deviceLines = (fitted ?? []).filter((d) => d.type === "device");
+  if (deviceLines.length === 0) return [newDeviceLine(1)];
+  return deviceLines.map((d, i) => ({ key: i + 1, deviceId: d.deviceId, quantity: String(d.quantity) }));
+}
+
+function simIdFrom(fitted: EditTarget["fittedDevices"] | undefined): string {
+  return (fitted ?? []).find((d) => d.type === "sim")?.deviceId ?? "";
+}
+
+export function NewInstallationModal({
+  open,
+  onClose,
+  customers,
+  accounts,
+  devices,
+  editTarget = null,
+}: Props) {
   const [state, formAction] = useActionState<InstallationActionState, FormData>(
     createInstallations,
     null
@@ -48,18 +92,21 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
 
   useActionToast(state?.error);
 
+  const isEdit = editTarget !== null;
+
   const [formKey, setFormKey] = useState(0);
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState(editTarget?.customerName ?? "");
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [installationDate, setInstallationDate] = useState(todayStr());
-  const [deviceLines, setDeviceLines] = useState<DeviceLineDraft[]>([newDeviceLine(1)]);
+  const [installationDate, setInstallationDate] = useState(editTarget?.installationDate ?? todayStr());
+  const [deviceLines, setDeviceLines] = useState<DeviceLineDraft[]>(deviceLinesFrom(editTarget?.fittedDevices));
+  const [simId, setSimId] = useState(simIdFrom(editTarget?.fittedDevices));
   // null means the Amount box is still following the devices
-  const [amountOverride, setAmountOverride] = useState<string | null>(null);
+  const [amountOverride, setAmountOverride] = useState<string | null>(editTarget?.amount ?? null);
   const [discountMode, setDiscountMode] = useState<DiscountMode>("fixed");
-  const [discountValue, setDiscountValue] = useState("");
-  const [amountPaid, setAmountPaid] = useState("");
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [discountValue, setDiscountValue] = useState(editTarget?.discount ?? "");
+  const [amountPaid, setAmountPaid] = useState(editTarget?.amountPaid ?? "");
+  const [moreOpen, setMoreOpen] = useState(editTarget !== null);
 
   const query = customerName.trim().toLowerCase();
 
@@ -75,13 +122,16 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
   const subtotal = deviceSubtotal(deviceLines, devices);
   const amountValue = amountOverride ?? (subtotal > 0 ? String(subtotal) : "");
 
+  // Device and Sim amounts follow the picked stock line's sale price — read
+  // only, same as Amount used to before it became independently adjustable
+  const deviceAmount = subtotal;
+  const simAmount = simAmountOf(simId, devices);
+
   // The same function the Server Action uses, so the figures shown are the
   // figures stored
   const money = resolvePayment({
     amount: parseFloat(amountValue) || 0,
-    // SIM and device charges are not collected on this form any more; the
-    // Amount carries the whole job
-    simPayment: 0,
+    simPayment: simAmount,
     discountMode,
     discountValue: parseFloat(discountValue) || 0,
     amountPaid: parseFloat(amountPaid) || 0,
@@ -91,33 +141,36 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
   // moved — something paid, against a job worth something
   const hasPaid = money.total > 0 && money.amountPaid > 0;
 
-  function reset() {
-    setCustomerName("");
+function reset(target: EditTarget | null) {
+    setCustomerName(target?.customerName ?? "");
     setSearchOpen(false);
     setActiveIndex(0);
-    setInstallationDate(todayStr());
-    setDeviceLines([newDeviceLine(1)]);
-    setAmountOverride(null);
+    setInstallationDate(target?.installationDate ?? todayStr());
+    setDeviceLines(deviceLinesFrom(target?.fittedDevices));
+    setSimId(simIdFrom(target?.fittedDevices));
+    setAmountOverride(target?.amount ?? null);
     setDiscountMode("fixed");
-    setDiscountValue("");
-    setAmountPaid("");
-    setMoreOpen(false);
+    setDiscountValue(target?.discount ?? "");
+    setAmountPaid(target?.amountPaid ?? "");
+    setMoreOpen(target !== null);
   }
 
   useEffect(() => {
     if (state?.success) {
       onClose();
       setFormKey((k) => k + 1);
-      reset();
+      reset(null);
     }
   }, [state?.success, onClose]);
 
+  // Re-seeds every time the modal opens, so switching from editing one row to
+  // creating a new one (or to a different row) never carries over stale state
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setFormKey((k) => k + 1);
-      reset();
+      reset(editTarget);
     }
-  }, [open]);
+  }, [open, editTarget]);
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") {
@@ -154,10 +207,12 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
           <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-6 py-5">
             <div>
               <h2 className="font-display text-[17px] font-semibold text-text-primary">
-                New installation
+                {isEdit ? "Edit installation" : "New installation"}
               </h2>
               <p className="mt-0.5 text-[13px] text-text-secondary">
-                Renewal falls due one year after the installation date
+                {isEdit
+                  ? "Saves to this same installation — changing Registration No moves it to a different vehicle"
+                  : "Renewal falls due one year after the installation date"}
               </p>
             </div>
             <button
@@ -251,6 +306,7 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                   </label>
                   <input
                     name="registrationNo"
+                    defaultValue={editTarget?.registrationNo ?? ""}
                     placeholder="BHN-058"
                     required
                     className={MONO_INPUT}
@@ -281,6 +337,35 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                 selectClassName={SELECT}
               />
 
+              {/* Sim from stock — one line, its sale price becomes the Sim amount */}
+              <SimPicker
+                simId={simId}
+                devices={devices}
+                onChange={setSimId}
+                labelClassName={FIELD_LABEL}
+                selectClassName={SELECT}
+              />
+              {simId && <input type="hidden" name="deviceId" value={simId} />}
+              {simId && <input type="hidden" name="deviceQuantity" value="1" />}
+
+              {/* Device / Sim amounts — read only, follow the picked stock line's sale price */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className={FIELD_LABEL}>Device amount</label>
+                  <div className={`${INPUT} flex items-center bg-surface-muted text-text-secondary`}>
+                    {deviceAmount > 0 ? `Rs ${deviceAmount.toLocaleString("en-PK")}` : "—"}
+                  </div>
+                  <input type="hidden" name="devicePayment" value={deviceAmount} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className={FIELD_LABEL}>Sim amount</label>
+                  <div className={`${INPUT} flex items-center bg-surface-muted text-text-secondary`}>
+                    {simAmount > 0 ? `Rs ${simAmount.toLocaleString("en-PK")}` : "—"}
+                  </div>
+                  <input type="hidden" name="simPayment" value={simAmount} />
+                </div>
+              </div>
+
               {/* Money */}
               <div className="flex flex-col gap-1.5">
                 <label className={FIELD_LABEL}>Amount</label>
@@ -308,7 +393,12 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                     Payment Method {hasPaid && <span className="text-error">*</span>}
                   </label>
                   <div className="relative">
-                    <select name="accountId" defaultValue="" required={hasPaid} className={SELECT}>
+                    <select
+                      name="accountId"
+                      defaultValue={editTarget?.accountId ?? ""}
+                      required={hasPaid}
+                      className={SELECT}
+                    >
                       <option value="">
                         {hasPaid ? "Choose a payment method" : "No payment method"}
                       </option>
@@ -396,22 +486,35 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                     {/* Address */}
                     <div className="flex flex-col gap-1.5">
                       <label className={FIELD_LABEL}>Address</label>
-                      <input name="address" placeholder="12 Mall Road, Lahore" className={INPUT} />
+                      <input
+                        name="address"
+                        defaultValue={editTarget?.address ?? ""}
+                        placeholder="12 Mall Road, Lahore"
+                        className={INPUT}
+                      />
                     </div>
 
                     {/* Contacts */}
                     <div className="flex flex-col gap-2">
                       <label className={FIELD_LABEL}>Contacts</label>
-                      {([1, 2, 3, 4] as const).map((n) => (
-                        <div key={n} className="grid grid-cols-2 gap-2">
-                          <input
-                            name={`contact${n}Name`}
-                            placeholder={`Contact ${n} name`}
-                            className={INPUT}
-                          />
-                          <PhoneInput name={`contact${n}Mobile`} className={MONO_INPUT} />
-                        </div>
-                      ))}
+                      {([1, 2, 3, 4] as const).map((n) => {
+                        const c = editTarget?.contacts.find((c) => c.position === n);
+                        return (
+                          <div key={n} className="grid grid-cols-2 gap-2">
+                            <input
+                              name={`contact${n}Name`}
+                              defaultValue={c?.name ?? ""}
+                              placeholder={`Contact ${n} name`}
+                              className={INPUT}
+                            />
+                            <PhoneInput
+                              name={`contact${n}Mobile`}
+                              defaultValue={c?.mobile ?? ""}
+                              className={MONO_INPUT}
+                            />
+                          </div>
+                        );
+                      })}
                       <p className="text-[12px] text-text-muted">
                         Contact 1's mobile does not replace Phone above — enter both if they differ
                       </p>
@@ -422,38 +525,76 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                       <label className={FIELD_LABEL}>Vehicle</label>
                       <input
                         name="carDescription"
+                        defaultValue={editTarget?.carDescription ?? ""}
                         placeholder="Car Description — e.g. White Corolla GLi"
                         className={INPUT}
                       />
                       <div className="grid grid-cols-2 gap-2">
-                        <input name="make" placeholder="Make" className={INPUT} />
-                        <input name="model" placeholder="Model" className={INPUT} />
+                        <input
+                          name="make"
+                          defaultValue={editTarget?.make ?? ""}
+                          placeholder="Make"
+                          className={INPUT}
+                        />
+                        <input
+                          name="model"
+                          defaultValue={editTarget?.model ?? ""}
+                          placeholder="Model"
+                          className={INPUT}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           name="engineNo"
+                          defaultValue={editTarget?.engineNo ?? ""}
                           placeholder="Engine Number"
                           className={MONO_INPUT}
                         />
                         <input
                           name="chassisNo"
+                          defaultValue={editTarget?.chassisNo ?? ""}
                           placeholder="Chassis Number"
                           className={MONO_INPUT}
                         />
                       </div>
-                      <input name="colour" placeholder="Colour" className={INPUT} />
+                      <input
+                        name="colour"
+                        defaultValue={editTarget?.colour ?? ""}
+                        placeholder="Colour"
+                        className={INPUT}
+                      />
                     </div>
 
                     {/* Device reference — plain text kept on the installation, not linked to Stock */}
                     <div className="flex flex-col gap-2">
                       <label className={FIELD_LABEL}>Device reference</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <PhoneInput name="gsmNo" placeholder="GSM Number" className={MONO_INPUT} />
-                        <input name="fmModule" placeholder="FM Module" className={MONO_INPUT} />
+                        <PhoneInput
+                          name="gsmNo"
+                          defaultValue={editTarget?.gsmNo ?? ""}
+                          placeholder="GSM Number"
+                          className={MONO_INPUT}
+                        />
+                        <input
+                          name="fmModule"
+                          defaultValue={editTarget?.fmModule ?? ""}
+                          placeholder="FM Module"
+                          className={MONO_INPUT}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <input name="cutOff" placeholder="Cut Off" className={MONO_INPUT} />
-                        <input name="imeiNo" placeholder="IMEI Number" className={MONO_INPUT} />
+                        <input
+                          name="cutOff"
+                          defaultValue={editTarget?.cutOff ?? ""}
+                          placeholder="Cut Off"
+                          className={MONO_INPUT}
+                        />
+                        <input
+                          name="imeiNo"
+                          defaultValue={editTarget?.imeiNo ?? ""}
+                          placeholder="IMEI Number"
+                          className={MONO_INPUT}
+                        />
                       </div>
                       <p className="text-[12px] text-text-muted">
                         Kept as notes on this installation — Stock and the fitted device above are
@@ -483,7 +624,7 @@ export function NewInstallationModal({ open, onClose, customers, accounts, devic
                   boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)",
                 }}
               >
-                Save installation
+                {isEdit ? "Save changes" : "Save installation"}
               </SubmitButton>
             </div>
           </form>

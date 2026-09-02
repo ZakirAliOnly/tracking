@@ -42,7 +42,8 @@ export function DeviceLines({
   inputClassName,
   selectClassName,
 }: Props) {
-  if (devices.length === 0) return null;
+  const deviceOptions = devices.filter((d) => d.type === "device");
+  if (deviceOptions.length === 0) return null;
 
   const update = (key: number, patch: Partial<DeviceLineDraft>) =>
     onChange(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -68,7 +69,7 @@ export function DeviceLines({
               className={selectClassName}
             >
               <option value="">Choose a device from stock</option>
-              {devices.map((d) => (
+              {deviceOptions.map((d) => (
                 <option key={d.id} value={d.id} disabled={d.quantity < 1}>
                   {deviceLabel(d)}
                 </option>

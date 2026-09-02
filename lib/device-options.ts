@@ -4,6 +4,7 @@ export type InstallableDevice = {
   /** Rupees, as a string — the sale price becomes the installation charge. */
   salePrice: string | null;
   quantity: number;
+  type: "device" | "sim";
 };
 
 export function salePriceOf(device: InstallableDevice): number {

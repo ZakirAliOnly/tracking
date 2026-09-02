@@ -2,20 +2,25 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { Plus, RefreshCw, X } from "lucide-react";
+import { Pencil, Plus, Printer, RefreshCw, Trash2, X } from "lucide-react";
 import {
   RecordRenewalModal,
   type PreFill,
+  type RenewalEditTarget,
   type InstallationOption,
   type AccountOption,
 } from "@/components/renewals/RecordRenewalModal";
 import { Pagination } from "@/components/ui/Pagination";
+import { SubmitButton } from "@/components/ui/SubmitButton";
+import { deleteRenewal } from "@/actions/renewals";
 import { buildHref } from "@/lib/pagination";
 
 export type RenewalStatus = "received" | "due_soon" | "overdue" | "upcoming";
 
 export type RenewalRow = {
   installationId: string;
+  /** The latest recorded Renewal's own id — null until one exists (status !== "received"). */
+  renewalId: string | null;
   customerName: string;
   registrationNo: string;
   dueDateIso: string;
@@ -33,6 +38,11 @@ export type RenewalRow = {
   prefillSimOsting: string;
   prefillNet: string;
   nextRenewalDateIso: string; // current nextRenewalDate from installation (= dueDate)
+  // The latest renewal's own record detail — only present when renewalId is,
+  // used to pre-fill Edit and the print invoice
+  lastRenewedAtIso: string | null;
+  lastOtherNote: string | null;
+  lastNextRenewalDateIso: string | null;
 };
 
 type Filter = "pending" | "received" | "all";
@@ -40,6 +50,7 @@ type Filter = "pending" | "received" | "all";
 type Props = {
   rows: RenewalRow[];
   accounts: AccountOption[];
+  simSalePrice: string;
   filter: Filter;
   page: number;
   total: number;
@@ -102,6 +113,7 @@ const DATE_INPUT =
 export function RenewalsView({
   rows,
   accounts,
+  simSalePrice,
   filter,
   page,
   total,
@@ -112,16 +124,19 @@ export function RenewalsView({
 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPreFill, setDrawerPreFill] = useState<PreFill | null>(null);
+  const [editTarget, setEditTarget] = useState<RenewalEditTarget | null>(null);
 
   const handleCloseDrawer = useCallback(() => {
     setDrawerOpen(false);
     setDrawerPreFill(null);
+    setEditTarget(null);
   }, []);
 
   const handleRecordRow = useCallback((row: RenewalRow) => {
     const dueIso = row.nextRenewalDateIso.slice(0, 10);
     const d = new Date(dueIso);
     d.setFullYear(d.getFullYear() + 1);
+    setEditTarget(null);
     setDrawerPreFill({
       installationId: row.installationId,
       customerName: row.customerName,
@@ -132,6 +147,24 @@ export function RenewalsView({
       amount: row.prefillAmount,
       simOsting: row.prefillSimOsting,
       net: row.prefillNet,
+    });
+    setDrawerOpen(true);
+  }, []);
+
+  const handleEditRow = useCallback((row: RenewalRow) => {
+    if (!row.renewalId) return;
+    setDrawerPreFill(null);
+    setEditTarget({
+      renewalId: row.renewalId,
+      installationId: row.installationId,
+      customerName: row.customerName,
+      registrationNo: row.registrationNo,
+      accountId: row.accountId,
+      amount: row.amount ?? "0",
+      simOsting: row.simOsting ?? "0",
+      renewedAt: row.lastRenewedAtIso?.slice(0, 10) ?? "",
+      otherNote: row.lastOtherNote ?? "",
+      nextRenewalDate: row.lastNextRenewalDateIso?.slice(0, 10) ?? "",
     });
     setDrawerOpen(true);
   }, []);
@@ -153,8 +186,10 @@ export function RenewalsView({
         open={drawerOpen}
         onClose={handleCloseDrawer}
         preFill={drawerPreFill}
+        editTarget={editTarget}
         installationOptions={installationOptions}
         accounts={accounts}
+        simSalePrice={simSalePrice}
       />
 
       {/* Toolbar */}
@@ -182,7 +217,7 @@ export function RenewalsView({
         </div>
 
         <button
-          onClick={() => { setDrawerPreFill(null); setDrawerOpen(true); }}
+          onClick={() => { setDrawerPreFill(null); setEditTarget(null); setDrawerOpen(true); }}
           className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-accent-foreground transition-opacity hover:opacity-90"
           style={{ boxShadow: "0 1px 2px rgba(225,29,72,0.20), 0 4px 12px -4px rgba(225,29,72,0.40)" }}
         >
@@ -323,16 +358,60 @@ export function RenewalsView({
                     <StatusBadge status={row.status} daysUntilDue={row.daysUntilDue} />
                   </td>
 
-                  {/* Record button */}
+                  {/* Actions */}
                   <td className="pl-2 pr-5 py-4">
-                    {row.status !== "received" && (
-                      <button
-                        onClick={() => handleRecordRow(row)}
-                        className="flex h-8 items-center gap-1.5 rounded-[9px] bg-accent-light px-3 text-[12px] font-semibold text-accent transition-colors hover:bg-accent hover:text-white"
-                      >
-                        <RefreshCw className="h-3 w-3" />
-                        Record
-                      </button>
+                    {row.status === "received" && row.renewalId ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/print/renewal/${row.renewalId}`, "_blank")}
+                          aria-label="Print invoice"
+                          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-surface-muted hover:text-text-primary"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEditRow(row)}
+                          aria-label="Edit renewal"
+                          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-accent-light hover:text-accent"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <form
+                          action={async (fd: FormData) => {
+                            await deleteRenewal(null, fd);
+                          }}
+                          onSubmit={(e) => {
+                            if (
+                              !window.confirm(
+                                `Delete this renewal for ${row.registrationNo}? The due date reverts to what it was before. This cannot be undone.`
+                              )
+                            )
+                              e.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="renewalId" value={row.renewalId} />
+                          <SubmitButton
+                            pendingLabel=""
+                            spinnerClassName="h-3.5 w-3.5"
+                            aria-label="Delete renewal"
+                            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-muted transition-colors hover:bg-error-light hover:text-error disabled:opacity-60"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </SubmitButton>
+                        </form>
+                      </div>
+                    ) : (
+                      row.status !== "received" && (
+                        <button
+                          onClick={() => handleRecordRow(row)}
+                          className="flex h-8 items-center gap-1.5 rounded-[9px] bg-accent-light px-3 text-[12px] font-semibold text-accent transition-colors hover:bg-accent hover:text-white"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Record
+                        </button>
+                      )
                     )}
                   </td>
                 </tr>
