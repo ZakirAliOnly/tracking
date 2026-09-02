@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/actions/auth";
@@ -14,7 +15,6 @@ import {
   Receipt,
   BarChart2,
   TrendingUp,
-  MapPin,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,19 +62,10 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-screen w-60 flex-none flex-col bg-surface border-r border-border">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-        <div
-          className="flex h-9 w-9 flex-none items-center justify-center rounded-[10px]"
-          style={{
-            background: "linear-gradient(135deg, #E11D48 0%, #FB7185 100%)",
-          }}
-        >
-          <MapPin className="h-[19px] w-[19px] text-accent-foreground" />
-        </div>
-        <span className="font-display text-[18px] font-bold leading-6 text-text-primary">
-          Real Tracker
-        </span>
+      {/* Logo — the org's own logo image carries the name, so no separate
+          text label sits next to it */}
+      <div className="flex items-center px-5 py-3 border-b border-border">
+        <Image src="/logo.jpeg" alt="Real Tracker" width={200} height={200} className="h-16 w-auto" priority />
       </div>
 
       {/* Nav */}

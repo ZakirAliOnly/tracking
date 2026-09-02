@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Eye, EyeOff, MapPin } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff } from "lucide-react";
 import { loginAction } from "@/actions/auth";
 import { useActionToast } from "@/components/ui/ToastProvider";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -20,16 +21,9 @@ export function LoginForm() {
           "0 1px 2px rgba(26,20,20,0.05), 0 6px 22px -8px rgba(26,20,20,0.14)",
       }}
     >
-      {/* Logo */}
+      {/* Logo — carries the name itself, so no separate wordmark is needed here */}
       <div className="mb-6 flex flex-col items-center gap-3">
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-[10px]"
-          style={{
-            background: "linear-gradient(135deg, #E11D48 0%, #FB7185 100%)",
-          }}
-        >
-          <MapPin className="h-5 w-5 text-white" />
-        </div>
+        <Image src="/logo.jpeg" alt="Real Tracker" width={280} height={280} className="h-24 w-auto" priority />
         <div className="text-center">
           <h1 className="font-display text-[22px] font-bold text-text-primary">
             Welcome back
