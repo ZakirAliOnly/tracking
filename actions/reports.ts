@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export type ReportType = "overview" | "installations" | "renewals" | "suppliers" | "payment_method" | "stock";
+export type ReportType = "overview" | "installations" | "renewals" | "suppliers" | "payment_method" | "stock" | "deleted";
 
 /* ─── Per-report row/stats types ─────────────────────────────── */
 
@@ -32,6 +32,12 @@ export type RenewalStats = { count: number; received: number; pending: number; t
 export type RenewalRow = {
   id: string; customer: string; regNo: string; date: string;
   amount: number; received: boolean;
+};
+
+export type DeletedStats = { count: number; totalAmount: number };
+export type DeletedRow = {
+  id: string; customer: string; vehicle: string; regNo: string;
+  installDate: string; deletedAt: string; amount: number;
 };
 
 export type SupplierReportStats = { invoiceCount: number; totalValue: number; totalPaid: number; balanceDue: number };
@@ -67,7 +73,8 @@ export type ReportResult =
   | { type: "renewals"; stats: RenewalStats; rows: RenewalRow[] }
   | { type: "suppliers"; stats: SupplierReportStats; rows: SupplierReportRow[] }
   | { type: "payment_method"; stats: PaymentMethodStats; rows: PaymentMethodRow[] }
-  | { type: "stock"; stats: StockStats; rows: StockRow[] };
+  | { type: "stock"; stats: StockStats; rows: StockRow[] }
+  | { type: "deleted"; stats: DeletedStats; rows: DeletedRow[] };
 
 /* ─── Main action ─────────────────────────────────────────────── */
 
@@ -197,6 +204,39 @@ export async function generateReport(
             total: payableOf(r),
             paid: Number(r.amountPaid),
             remaining: Math.max(0, payableOf(r) - Number(r.amountPaid)),
+          })),
+        },
+      };
+    }
+
+    if (type === "deleted") {
+      // Dated by when it was trashed, not when the job was originally done —
+      // this report is about deletions in the window, not installations
+      const rows = await prisma.installation.findMany({
+        where: { orgId, deletedAt: { not: null, gte: from, lte: to } },
+        include: {
+          customer: { select: { name: true } },
+          vehicle: { select: { registrationNo: true, make: true, model: true } },
+        },
+        orderBy: { deletedAt: "desc" },
+      });
+
+      const totalAmount = rows.reduce((s, r) => s + payableOf(r), 0);
+
+      return {
+        success: true,
+        result: {
+          type: "deleted",
+          stats: { count: rows.length, totalAmount },
+          rows: rows.map(r => ({
+            id: r.id,
+            customer: r.customer.name,
+            vehicle: [r.vehicle.make, r.vehicle.model].filter(Boolean).join(" ") || "—",
+            regNo: r.vehicle.registrationNo,
+            installDate: r.installationDate.toISOString().slice(0, 10),
+            // Non-null guaranteed by the where clause above
+            deletedAt: r.deletedAt!.toISOString().slice(0, 10),
+            amount: payableOf(r),
           })),
         },
       };

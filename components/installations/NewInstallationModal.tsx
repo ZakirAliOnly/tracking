@@ -120,12 +120,13 @@ export function NewInstallationModal({
       : customers.filter((c) => c.name.toLowerCase().includes(query)).slice(0, MAX_SUGGESTIONS);
 
   const subtotal = deviceSubtotal(deviceLines, devices);
-  const amountValue = amountOverride ?? (subtotal > 0 ? String(subtotal) : "");
 
   // Device and Sim amounts follow the picked stock line's sale price — read
   // only, same as Amount used to before it became independently adjustable
   const deviceAmount = subtotal;
   const simAmount = simAmountOf(simId, devices);
+  const combinedDefault = deviceAmount + simAmount;
+  const amountValue = amountOverride ?? (combinedDefault > 0 ? String(combinedDefault) : "");
 
   // The same function the Server Action uses, so the figures shown are the
   // figures stored
@@ -381,7 +382,7 @@ function reset(target: EditTarget | null) {
                 />
                 <p className="text-[12px] text-text-muted">
                   {amountOverride === null
-                    ? "From the devices — you can change it"
+                    ? "From the device and sim — you can change it"
                     : "Changed by hand"}
                 </p>
               </div>

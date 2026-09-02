@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import {
-  BarChart2, HardDrive, RefreshCw, Package, CreditCard, Archive, Printer, ChevronDown,
+  BarChart2, HardDrive, RefreshCw, Package, CreditCard, Archive, Printer, ChevronDown, Trash2,
 } from "lucide-react";
 import {
   generateReport,
@@ -14,6 +14,7 @@ import {
   type SupplierReportRow,
   type PaymentMethodRow,
   type StockRow,
+  type DeletedRow,
 } from "@/actions/reports";
 import { useToast } from "@/components/ui/ToastProvider";
 
@@ -28,6 +29,7 @@ const REPORT_TYPES = [
   { id: "suppliers" as ReportType, label: "Supplier Report", icon: Package, desc: "Purchase invoices and supplier payment summary" },
   { id: "payment_method" as ReportType, label: "Payment Method Report", icon: CreditCard, desc: "Select a payment method to see its transactions and balance" },
   { id: "stock" as ReportType, label: "Stock Report", icon: Archive, desc: "Current device inventory by status and value" },
+  { id: "deleted" as ReportType, label: "Deleted Installations", icon: Trash2, desc: "Installations moved to Trash in the period, with restore status" },
 ];
 
 function today() { return new Date().toISOString().slice(0, 10); }
@@ -252,6 +254,7 @@ export function ReportsView({ accounts }: { accounts: AccountOption[] }) {
           {result.type === "suppliers" && <SuppliersReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
           {result.type === "payment_method" && <PaymentMethodReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
           {result.type === "stock" && <StockReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
+          {result.type === "deleted" && <DeletedReport data={result} label={selectedLabel} range={`${fmtDate(dateFrom)} — ${fmtDate(dateTo)}`} />}
         </div>
       )}
     </div>
@@ -370,6 +373,47 @@ function InstallationsReport({ data, label, range }: { data: Extract<ReportResul
                 <td className={TD + " font-bold"}>{fmtRs(stats.totalRevenue)}</td>
                 <td className={TD + " text-success-foreground font-bold"}>{fmtRs(stats.totalCollected)}</td>
                 <td className={TD + " text-error font-bold"}>{fmtRs(stats.balanceDue)}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/* ─── Deleted installations ───────────────────────────────────── */
+
+function DeletedReport({ data, label, range }: { data: Extract<ReportResult, { type: "deleted" }>; label: string; range: string }) {
+  const { stats, rows } = data;
+  return (
+    <>
+      <ReportHeader label={label} range={range} />
+      <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-2">
+        <StatCard label="Deleted" value={String(stats.count)} accent={stats.count > 0 ? "text-error" : "text-text-primary"} />
+        <StatCard label="Value lost" value={fmtRs(stats.totalAmount)} accent="text-error" />
+      </div>
+      <div className="overflow-x-auto border-t border-border">
+        <table className="w-full">
+          <thead><tr className="border-b border-border bg-surface-muted">
+            {["Customer","Reg No","Vehicle","Installed","Deleted","Amount"].map(h =>
+              <th key={h} className={TH}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {rows.length === 0 ? <EmptyRows /> : rows.map((r: DeletedRow, i) => (
+              <tr key={r.id} className={`transition-colors hover:bg-surface-muted ${i < rows.length - 1 ? "border-b border-border" : ""}`}>
+                <td className={TD + " font-semibold"}>{r.customer}</td>
+                <td className={TD + " font-mono text-[12px]"}>{r.regNo}</td>
+                <td className={TD + " text-text-secondary"}>{r.vehicle}</td>
+                <td className={TD + " text-[12px] text-text-muted"}>{fmtDate(r.installDate)}</td>
+                <td className={TD + " text-[12px] text-error"}>{fmtDate(r.deletedAt)}</td>
+                <td className={TD + " font-semibold"}>{fmtRs(r.amount)}</td>
+              </tr>
+            ))}
+            {rows.length > 0 && (
+              <tr className="border-t-2 border-border bg-surface-muted font-semibold">
+                <td className={TD + " font-bold"} colSpan={5}>Total ({rows.length})</td>
+                <td className={TD + " font-bold text-error"}>{fmtRs(stats.totalAmount)}</td>
               </tr>
             )}
           </tbody>
